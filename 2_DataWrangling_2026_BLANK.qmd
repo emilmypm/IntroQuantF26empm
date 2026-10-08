@@ -539,7 +539,7 @@ bind_rows(fake_data_1,fake_data_2)
 
 nrow(bind_rows(fake_data_1,fake_data_2))
 ### bind_cols()
-cant because its not the same size (10 columns vs 15)
+#cant because its not the same size (10 columns vs 15)
 
 color_vector <- c("pink", "blue", "aquamarine", "tan", "yellow","coral","purple","deepskyblue", "red", "green"  )
 

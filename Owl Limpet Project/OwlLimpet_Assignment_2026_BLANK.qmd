@@ -57,13 +57,21 @@ ggplot(SizeData_2022_2025) +
 Make a histogram with a `facet_wrap()` to separate the data from each site and year into separate graphs. What do you observe about the different histograms?
 
 ```{r}
+#color correlated to year
 ggplot(SizeData_2022_2025) +
-  aes(x=shell_length_mm)+
+  aes(x=shell_length_mm, fill=year)+
   geom_histogram()+
   labs(title = "Owl Limpet Data Separated by Year and Site",
        y = "Count", x = "Shell Length")+
   facet_wrap(~year+site)
 
+#color correlated to site
+ggplot(SizeData_2022_2025) +
+  aes(x=shell_length_mm, fill=site)+
+  geom_histogram()+
+  labs(title = "Owl Limpet Data Separated by Year and Site",
+       y = "Count", x = "Shell Length")+
+  facet_wrap(~year+site)
 ```
 
 We know our minimum size cut-off varied in different years of the surveys, and some teams just didn't follow directions. Filter out any observations smaller than 15 mm.
@@ -148,7 +156,21 @@ ANSWER: Our methods have been a little inconsistent. We used different methods a
 Graph 1:
 
 ```{r}
+#color correlated to habitat
+ggplot(SizeData_2022_2025) +
+  aes(x=shell_length_mm, fill=habitat, )+
+  geom_histogram()+
+  labs(title = "Owl Limpet Data Separated by habitat and Site",
+       y = "Count", x = "Shell Length")+
+  facet_wrap(~habitat+site)
 
+#color correlated to site
+ggplot(SizeData_2022_2025) +
+  aes(x=shell_length_mm, fill=site)+
+  geom_histogram()+
+  labs(title = "Owl Limpet Data Separated by Year and Site",
+       y = "Count", x = "Shell Length")+
+  facet_wrap(~habitat+site)
 ```
 
 This shows:
@@ -157,6 +179,12 @@ Graph 2:
 
 ```{r}
 
+ggplot(SizeData_2022_2025) + 
+  aes(x =year,y=shell_length_mm) +
+  geom_boxplot()+
+  labs(title = "Owl Limpet Shell Length by Year",
+       y = "Count", x = "Shell Length")+
+  geom_point(color="pink")
 ```
 
 This shows:
@@ -166,7 +194,11 @@ This shows:
 For the population density analysis, we will analyze data from Shaws Cove, Heisler Park, and Treasure Cove. Create a data frame that excludes the Corona del Mar data, as that site did not have area measured.
 
 ```{r}
+SizeData_2022_2025
+view(SizeData_2022_2025)
 No_CDM_Sizes <- SizeData_2022_2025 |> 
+  filter_out(site=="Corona del Mar")
+view(No_CDM_Sizes)
 ```
 
 #### 2.1. How many limpets did we measure at each site in each year for sizes?
@@ -178,13 +210,17 @@ No_CDM_Sizes
 
 # How many did we measure total, across both sites?
 No_CDM_Sizes |> 
+  nrow()
 
 ## How many did we measure at each site? 
 No_CDM_Sizes |> 
+  group_by(site,transect_num)
 
 # How many did we measure in each transect? 
 No_CDM_Sizes |> 
 ```
+
+1767
 
 #### 2.2 What was the limpet density (i.e., limpets per square meter) for each transect?
 
