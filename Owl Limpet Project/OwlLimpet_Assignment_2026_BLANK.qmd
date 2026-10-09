@@ -214,13 +214,56 @@ No_CDM_Sizes |>
 
 ## How many did we measure at each site? 
 No_CDM_Sizes |> 
-  group_by(site,transect_num)
+  group_by(site) |> 
+  tally()
+  
 
 # How many did we measure in each transect? 
 No_CDM_Sizes |> 
+  group_by(transect_num) |> 
+  tally() |> 
+  arrange(transect_num)
 ```
 
+how many did we measure total
+
 1767
+
+how many did we measure at each site
+
+|               |     |
+|:--------------|----:|
+| Heisler Park  | 492 |
+| Shaws Cove    | 806 |
+| Treasure Cove | 469 |
+
+how many did we measure in each transect
+
++--------------+---------+
+| transect_num | n       |
+|              |         |
+| \<fctr\>     | \<int\> |
++:=============+========:+
+| 2            | 250     |
++--------------+---------+
+| 3            | 189     |
++--------------+---------+
+| 4            | 132     |
++--------------+---------+
+| 5            | 220     |
++--------------+---------+
+| 6            | 298     |
++--------------+---------+
+| 7            | 85      |
++--------------+---------+
+| 8            | 171     |
++--------------+---------+
+| 9            | 165     |
++--------------+---------+
+| 10           | 139     |
++--------------+---------+
+| 1            | 86      |
++--------------+---------+
 
 #### 2.2 What was the limpet density (i.e., limpets per square meter) for each transect?
 
