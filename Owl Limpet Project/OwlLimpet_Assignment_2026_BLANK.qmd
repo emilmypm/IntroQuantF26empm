@@ -215,14 +215,13 @@ No_CDM_Sizes |>
 ## How many did we measure at each site? 
 No_CDM_Sizes |> 
   group_by(site) |> 
-  tally()
-  
+  count()
+
 
 # How many did we measure in each transect? 
 No_CDM_Sizes |> 
-  group_by(transect_num) |> 
-  tally() |> 
-  arrange(transect_num)
+  group_by(site) |> 
+  count(transect_num) 
 ```
 
 how many did we measure total
@@ -239,41 +238,84 @@ how many did we measure at each site
 
 how many did we measure in each transect
 
-+--------------+---------+
-| transect_num | n       |
-|              |         |
-| \<fctr\>     | \<int\> |
-+:=============+========:+
-| 2            | 250     |
-+--------------+---------+
-| 3            | 189     |
-+--------------+---------+
-| 4            | 132     |
-+--------------+---------+
-| 5            | 220     |
-+--------------+---------+
-| 6            | 298     |
-+--------------+---------+
-| 7            | 85      |
-+--------------+---------+
-| 8            | 171     |
-+--------------+---------+
-| 9            | 165     |
-+--------------+---------+
-| 10           | 139     |
-+--------------+---------+
-| 1            | 86      |
-+--------------+---------+
++---------------+--------------+---------+
+| site          | transect_num | n       |
+|               |              |         |
+| \<chr\>       | \<fctr\>     | \<int\> |
++:==============+:=============+========:+
+| Heisler Park  | 2            | 25      |
++---------------+--------------+---------+
+| Heisler Park  | 3            | 22      |
++---------------+--------------+---------+
+| Heisler Park  | 4            | 40      |
++---------------+--------------+---------+
+| Heisler Park  | 5            | 93      |
++---------------+--------------+---------+
+| Heisler Park  | 6            | 76      |
++---------------+--------------+---------+
+| Heisler Park  | 7            | 19      |
++---------------+--------------+---------+
+| Heisler Park  | 8            | 54      |
++---------------+--------------+---------+
+| Heisler Park  | 9            | 91      |
++---------------+--------------+---------+
+| Heisler Park  | 10           | 72      |
++---------------+--------------+---------+
+| Shaws Cove    | 2            | 204     |
++---------------+--------------+---------+
+| Shaws Cove    | 3            | 117     |
++---------------+--------------+---------+
+| Shaws Cove    | 4            | 55      |
++---------------+--------------+---------+
+| Shaws Cove    | 5            | 108     |
++---------------+--------------+---------+
+| Shaws Cove    | 6            | 157     |
++---------------+--------------+---------+
+| Shaws Cove    | 7            | 32      |
++---------------+--------------+---------+
+| Shaws Cove    | 8            | 50      |
++---------------+--------------+---------+
+| Shaws Cove    | 9            | 49      |
++---------------+--------------+---------+
+| Shaws Cove    | 10           | 34      |
++---------------+--------------+---------+
+| Treasure Cove | 2            | 21      |
++---------------+--------------+---------+
+| Treasure Cove | 3            | 50      |
++---------------+--------------+---------+
+| Treasure Cove | 4            | 37      |
++---------------+--------------+---------+
+| Treasure Cove | 5            | 19      |
++---------------+--------------+---------+
+| Treasure Cove | 6            | 65      |
++---------------+--------------+---------+
+| Treasure Cove | 7            | 34      |
++---------------+--------------+---------+
+| Treasure Cove | 8            | 67      |
++---------------+--------------+---------+
+| Treasure Cove | 9            | 25      |
++---------------+--------------+---------+
+| Treasure Cove | 10           | 33      |
++---------------+--------------+---------+
+| Treasure Cove | 1            | 86      |
++---------------+--------------+---------+
+| Treasure Cove | 11           | 25      |
++---------------+--------------+---------+
+| Treasure Cove | 12           | 7       |
++---------------+--------------+---------+
 
 #### 2.2 What was the limpet density (i.e., limpets per square meter) for each transect?
 
 Make a new dataframe out of the `No_CDM_Sizes` that has a column called *density,* that calculates the limpets per square meter for each transect. Remember that the transect included 1 meter on either side of the tape (total of 2 meters wide). Make sure to maintain the separation in year for the two Treasure Cove surveys using the `group_by()` function.
 
 ```{r}
-Limpet_Density <- No_CDM_Sizes |> 
+Limpet_Density <- No_CDM_Sizes |>
+  group_by(site, transect_length_m, transect_num, year) |> 
+  summarize(count=n())
+  Limpet_Density
   
-  
-
+Limpet_Density <- Limpet_Density |>
+  mutate(density = count/(transect_length_m*2))
 Limpet_Density
 ```
 
@@ -285,8 +327,10 @@ What was the mean limpets per square meter across all sites? And the standard de
 
 ```{r}
 Limpet_Density |> 
-
-
+ ungroup()|> 
+   summarize(mean_density =mean(density), 
+            sd_density =sd(density, na.rm=TRUE),
+            se_density = sd_density/sqrt(n()))
 ```
 
 Now create a summary table in which you calculate separate mean and standard deviation for each site and year (Shaws vs. Heisler vs. Treasure Cove)? What was the standard error? Round the mean and standard error to one decimal place. (look up the `round()` function!)
