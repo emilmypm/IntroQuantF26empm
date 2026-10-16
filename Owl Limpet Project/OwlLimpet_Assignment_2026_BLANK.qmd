@@ -13,6 +13,7 @@ Emily Perez-Medina
 ```{r load packages, include = FALSE}
 library(tidyverse)
 library(readxl)
+#loading packages that I will need throughout the assignment
 ```
 
 ## Project Summary:
@@ -21,18 +22,19 @@ library(readxl)
 
 You have been given data from several locations and survey years:
 
--   2022: Corona del Mar (CDM) - size data only, taken haphazardly
+- 2022: Corona del Mar (CDM) - size data only, taken haphazardly
 
--   2023: Treasure Cove (TC) - size data in 5-m transects, territories
+- 2023: Treasure Cove (TC) - size data in 5-m transects, territories
 
--   2024: Heisler Park and Shaws Cove - size data in variable length transects, territories
+- 2024: Heisler Park and Shaws Cove - size data in variable length transects, territories
 
--   2025: Treasure Cove (TC) - size data in 5-m transects, territories
+- 2025: Treasure Cove (TC) - size data in 5-m transects, territories
 
 ```{r}
 load(file = "Data/SizeData_2022_2025.Rdata")
-
+#loading the file
 SizeData_2022_2025
+#viewing the file as a table
 ```
 
 ## **Part 1: Data Exploration**
@@ -45,13 +47,14 @@ Make a histogram with all the data.
 
 ```{r}
 library(tidyverse)
-
+#loading tidyverse
 ggplot(SizeData_2022_2025) +
   aes(x=shell_length_mm)+
   geom_histogram()+
   labs(title = "Owl Limpet Data",
         y = "Count", x = "Shell Length")
-
+#making a histogram from the file SizeData_2022_2025 with the x axis as shell length in mm
+#adding lables for the title and both axes
 ```
 
 Make a histogram with a `facet_wrap()` to separate the data from each site and year into separate graphs. What do you observe about the different histograms?
@@ -64,6 +67,11 @@ ggplot(SizeData_2022_2025) +
   labs(title = "Owl Limpet Data Separated by Year and Site",
        y = "Count", x = "Shell Length")+
   facet_wrap(~year+site)
+#making a histogram using SizeData_2022_2025 with shell length in mm as the x axis
+#adding color to the histograms based on year
+#adding labels for title and axes
+#facet-wrapping to include multiple histograms from different sites and years on one grid
+
 
 #color correlated to site
 ggplot(SizeData_2022_2025) +
@@ -72,6 +80,10 @@ ggplot(SizeData_2022_2025) +
   labs(title = "Owl Limpet Data Separated by Year and Site",
        y = "Count", x = "Shell Length")+
   facet_wrap(~year+site)
+#making a histogram using SizeData_2022_2025 with shell length in mm as the x axis
+#adding color to the histograms based on site
+#adding labels for title and axes
+#facet-wrapping to include multiple histograms from different sites and years on one grid
 ```
 
 We know our minimum size cut-off varied in different years of the surveys, and some teams just didn't follow directions. Filter out any observations smaller than 15 mm.
@@ -79,10 +91,15 @@ We know our minimum size cut-off varied in different years of the surveys, and s
 ```{r}
 SizeData_2022_2025 |> 
 arrange(shell_length_mm)
+#arranging the data in SizeData_2022_2025 by shell length in mm fo rbetter visualization
 
 SizeData_2022_2025_filt <- SizeData_2022_2025 |> 
   filter_out(shell_length_mm<="15")
+#filtering out any observations of shell lengths equal or less than 15 mm
+#renaming this filtered data frame to avoid confusion
+
 SizeData_2022_2025_filt
+#visualizing the new, filtered data frame to ensure there are no shell lengths less than 15 mm
 ```
 
 ### 1.2 How long were the transects at each site?
@@ -92,26 +109,29 @@ Make a table using `select()` and `distinct()` to only show the length of each t
 ```{r}
 TransectLengths <- SizeData_2022_2025 |> 
   select(site,transect_length_m,transect_num,year)
-  
+#making a new data frame that only includes site, transect length, transect numbers, and year
+#renaming the data frame to TransectLengths
   
   dist_transect_length<-distinct(TransectLengths) |> 
     arrange(site,transect_num)
+#arranging the new TransectLengths data frame by site and transect numbers  
+#renaming the new, arranged, data frame to dist_transect_length
   
-
 TransectLengths
-
+#visualizing new data frame
 dist_transect_length
+#visualizing new data frame
 
 
 ```
 
 Visualize the transect lengths two different ways.
 
--   Make one boxplot with transect length on the y-axis, and site on the x-axis.
+- Make one boxplot with transect length on the y-axis, and site on the x-axis.
 
--   Use `geom_point()` to make a scatter plot with the same axes.
+- Use `geom_point()` to make a scatter plot with the same axes.
 
--   combine the two so that the points are red and overlay the boxplot graph.
+- combine the two so that the points are red and overlay the boxplot graph.
 
 ```{r}
 transect_lengths_bp<-dist_transect_length|> 
@@ -121,8 +141,13 @@ transect_lengths_bp<-dist_transect_length|>
   labs(title = "Transect Length by Site",
        y = "Transect Length (m)", x = "Site")+
   geom_boxplot()
+#setting up a boxplot called tranect_lengths_bp that uses the dist_transect_length data 
+#defining the x axis as site and the y as transect length
+#labeling the title and axes
 
 transect_lengths_bp  
+#visualizing boxplot
+
 
 transect_lengths_sc<- dist_transect_length|>
   ggplot() +
@@ -131,8 +156,13 @@ transect_lengths_sc<- dist_transect_length|>
   labs(title = "Transect Length by Site",
        y = "Transect Length (m)", x = "Site")+
   geom_point()
+#setting up a scatterplot called tranect_lengths_sc that uses the dist_transect_length data 
+#defining the x axis as site and the y as transect length
+#labeling the title and axes
 
 transect_lengths_sc
+#visualizing the scatterplot
+
 
 transectLengths_combined<- dist_transect_length|>
   ggplot() +
@@ -142,9 +172,13 @@ transectLengths_combined<- dist_transect_length|>
        y = "Transect Length (m)", x = "Site")+
   geom_boxplot()+
   geom_point(color="red")
-
+#setting up a boxplot with an overlay of a scatterplot called tranect_lengths_combined that uses the dist_transect_length data 
+#defining the x axis as site and the y as transect length
+#labeling the title and axes
+#making the points red for better visualization
   
 transectLengths_combined
+#visualizing the figure
 ```
 
 THINKING QUESTIONS: Do we have the number of transects that we expect to in our data set? Are they all the same length? Do our numbers make sense?
@@ -163,6 +197,11 @@ ggplot(SizeData_2022_2025) +
   labs(title = "Owl Limpet Data Separated by habitat and Site",
        y = "Count", x = "Shell Length")+
   facet_wrap(~habitat+site)
+#making a histogram using SizeData_2022_2025 with the x axis as shell length in mm
+#adding color to the histograms based on habitat category
+#adding labels to the title and axes
+#facet-wrapping to include multiple histograms from different sites and habitats on one grid
+
 
 #color correlated to site
 ggplot(SizeData_2022_2025) +
@@ -171,9 +210,13 @@ ggplot(SizeData_2022_2025) +
   labs(title = "Owl Limpet Data Separated by Year and Site",
        y = "Count", x = "Shell Length")+
   facet_wrap(~habitat+site)
+#making a histogram using SizeData_2022_2025 with the x axis as shell length in mm
+#adding color to the histograms based on site
+#adding labels to the title and axes
+#facet-wrapping to include multiple histograms from different sites and habitats on one grid
 ```
 
-This shows:
+**This shows:** [This shows the data separated by habitat and site. It helps visualize how many owl limpets of varying sizes are present in each habitat within each site. There are much higher counts of shell lengths of approximately 30 in Shaws Cove patch habitats. Treasure Cove patch habitats seem to have the least amount of owl limpets observed for all shell lengths.]{.underline}
 
 Graph 2:
 
@@ -183,11 +226,16 @@ ggplot(SizeData_2022_2025) +
   aes(x =year,y=shell_length_mm) +
   geom_boxplot()+
   labs(title = "Owl Limpet Shell Length by Year",
-       y = "Count", x = "Shell Length")+
+       y = "Count", x = "Year")+
   geom_point(color="pink")
+#making a boxplot with an overlay of a scatterplot that uses the SizeData_2022_2025
+#defining the x axis as year and the y as shell length
+#labeling the title and axes
+#making the points pink for better visualization
+
 ```
 
-This shows:
+**This shows:** [This shows the count of owl limpets observed per year. The boxplot helps visualize the ranges of owl limpets found each year, and the scatterplot helps find any trends in counts of various years. It can be observed that 2022 data has a much smaller range of data, and 2023 data has some of the highest counts of the 4 years.]{.underline}
 
 ## Part 2: Population Density
 
@@ -195,10 +243,14 @@ For the population density analysis, we will analyze data from Shaws Cove, Heisl
 
 ```{r}
 SizeData_2022_2025
+#viewing SizeData_2022_2025
 view(SizeData_2022_2025)
+#viewing SizeData_2022_2025 in another window
 No_CDM_Sizes <- SizeData_2022_2025 |> 
   filter_out(site=="Corona del Mar")
+#making a new data frame with Corona del Mar data filtered out and naming it No_CDM_Sizes
 view(No_CDM_Sizes)
+#viewing the data frame in a new window
 ```
 
 #### 2.1. How many limpets did we measure at each site in each year for sizes?
@@ -207,102 +259,79 @@ Use nrow(), group_by() and count() to tally the limpet observations at each tran
 
 ```{r}
 No_CDM_Sizes
+#visualizing the data frame No_CDM_Sizes
+
 
 # How many did we measure total, across both sites?
 No_CDM_Sizes |> 
   nrow()
+#each row of this data frame is an observed limpet, nrow() finds how many rows there are in the data frame
+
 
 ## How many did we measure at each site? 
 No_CDM_Sizes |> 
   group_by(site) |> 
   count()
-
+#grouping No_CDM_sizes by site, then counting how many owl limpet observations there were in each site
 
 # How many did we measure in each transect? 
 No_CDM_Sizes |> 
   group_by(site) |> 
   count(transect_num) 
+#grouping No_CDM_sizes by site, then counting how many owl limpet observations there were in each transect of each site
 ```
 
-how many did we measure total
+**how many did we measure total**
 
-1767
+[1767 limpets were measured in total.]{.underline}
 
-how many did we measure at each site
+**how many did we measure at each site**
 
-|               |     |
-|:--------------|----:|
-| Heisler Park  | 492 |
-| Shaws Cove    | 806 |
-| Treasure Cove | 469 |
+[There were 492 owl limpets in Heisler Park, 806 were measured in Shaws Cove, and 469 were measured in Treasure Cove (table below).]{.underline}
 
-how many did we measure in each transect
+|               |                                   |
+|:-------------:|:---------------------------------:|
+|   **Site**    | **Owl Limpets Observed/Measured** |
+| Heisler Park  |                492                |
+|  Shaws Cove   |                806                |
+| Treasure Cove |                469                |
 
-+---------------+--------------+---------+
-| site          | transect_num | n       |
-|               |              |         |
-| \<chr\>       | \<fctr\>     | \<int\> |
-+:==============+:=============+========:+
-| Heisler Park  | 2            | 25      |
-+---------------+--------------+---------+
-| Heisler Park  | 3            | 22      |
-+---------------+--------------+---------+
-| Heisler Park  | 4            | 40      |
-+---------------+--------------+---------+
-| Heisler Park  | 5            | 93      |
-+---------------+--------------+---------+
-| Heisler Park  | 6            | 76      |
-+---------------+--------------+---------+
-| Heisler Park  | 7            | 19      |
-+---------------+--------------+---------+
-| Heisler Park  | 8            | 54      |
-+---------------+--------------+---------+
-| Heisler Park  | 9            | 91      |
-+---------------+--------------+---------+
-| Heisler Park  | 10           | 72      |
-+---------------+--------------+---------+
-| Shaws Cove    | 2            | 204     |
-+---------------+--------------+---------+
-| Shaws Cove    | 3            | 117     |
-+---------------+--------------+---------+
-| Shaws Cove    | 4            | 55      |
-+---------------+--------------+---------+
-| Shaws Cove    | 5            | 108     |
-+---------------+--------------+---------+
-| Shaws Cove    | 6            | 157     |
-+---------------+--------------+---------+
-| Shaws Cove    | 7            | 32      |
-+---------------+--------------+---------+
-| Shaws Cove    | 8            | 50      |
-+---------------+--------------+---------+
-| Shaws Cove    | 9            | 49      |
-+---------------+--------------+---------+
-| Shaws Cove    | 10           | 34      |
-+---------------+--------------+---------+
-| Treasure Cove | 2            | 21      |
-+---------------+--------------+---------+
-| Treasure Cove | 3            | 50      |
-+---------------+--------------+---------+
-| Treasure Cove | 4            | 37      |
-+---------------+--------------+---------+
-| Treasure Cove | 5            | 19      |
-+---------------+--------------+---------+
-| Treasure Cove | 6            | 65      |
-+---------------+--------------+---------+
-| Treasure Cove | 7            | 34      |
-+---------------+--------------+---------+
-| Treasure Cove | 8            | 67      |
-+---------------+--------------+---------+
-| Treasure Cove | 9            | 25      |
-+---------------+--------------+---------+
-| Treasure Cove | 10           | 33      |
-+---------------+--------------+---------+
-| Treasure Cove | 1            | 86      |
-+---------------+--------------+---------+
-| Treasure Cove | 11           | 25      |
-+---------------+--------------+---------+
-| Treasure Cove | 12           | 7       |
-+---------------+--------------+---------+
+**how many did we measure in each transect**
+
+[there is a very long list, table below]{.underline}
+
+|     Site      | Transect Number | Owl Limpets Observed/Measured |
+|:-------------:|:---------------:|:-----------------------------:|
+| Heisler Park  |        2        |              25               |
+| Heisler Park  |        3        |              22               |
+| Heisler Park  |        4        |              40               |
+| Heisler Park  |        5        |              93               |
+| Heisler Park  |        6        |              76               |
+| Heisler Park  |        7        |              19               |
+| Heisler Park  |        8        |              54               |
+| Heisler Park  |        9        |              91               |
+| Heisler Park  |       10        |              72               |
+|  Shaws Cove   |        2        |              204              |
+|  Shaws Cove   |        3        |              117              |
+|  Shaws Cove   |        4        |              55               |
+|  Shaws Cove   |        5        |              108              |
+|  Shaws Cove   |        6        |              157              |
+|  Shaws Cove   |        7        |              32               |
+|  Shaws Cove   |        8        |              50               |
+|  Shaws Cove   |        9        |              49               |
+|  Shaws Cove   |       10        |              34               |
+| Treasure Cove |        1        |              86               |
+| Treasure Cove |        2        |              21               |
+| Treasure Cove |        3        |              50               |
+| Treasure Cove |        4        |              37               |
+| Treasure Cove |        5        |              19               |
+| Treasure Cove |        6        |              65               |
+| Treasure Cove |        7        |              34               |
+| Treasure Cove |        8        |              67               |
+| Treasure Cove |        9        |              25               |
+| Treasure Cove |       10        |              33               |
+| Treasure Cove |       11        |              25               |
+| Treasure Cove |       12        |               7               |
 
 #### 2.2 What was the limpet density (i.e., limpets per square meter) for each transect?
 
@@ -312,14 +341,24 @@ Make a new dataframe out of the `No_CDM_Sizes` that has a column called *density
 Limpet_Density <- No_CDM_Sizes |>
   group_by(site, transect_length_m, transect_num, year) |> 
   summarize(count=n())
+#making a new data frame called Limpet_Density using the No_CDM_Sizes data frame
+#grouping the data frame by site, transect length, transect number, and year
+#counting how many owl limpet observations (rows) fell in each of the groups
+#using summarize function to add the count into the table
   Limpet_Density
+# visualizing the new data frame with count included
   
 Limpet_Density <- Limpet_Density |>
   mutate(density = count/(transect_length_m*2))
+#making a new data frame called Limpet_Density(same name, so I am just doing the function directly to the original Limpet_Density data frame) using the Limpet_Density data frame
+#using mutate to add a new column called density that is a calculation of the count divided by the transect area, which is the transect length doubled 
 Limpet_Density
+#visualizing the new data frame with density included
 ```
 
-Do you see any patterns just from examining this table of values?
+**Do you see any patterns just from examining this table of values?**
+
+[I do not see an outstanding pattern, but Shaws Cove seems to have some of the higher densities of owl limpets per transect areas with 14.37, 7.61, and 9.81.]{.underline}
 
 #### 2.2. Calculating mean and standard error of population density
 
@@ -331,20 +370,41 @@ Limpet_Density |>
    summarize(mean_density =mean(density), 
             sd_density =sd(density, na.rm=TRUE),
             se_density = sd_density/sqrt(n()))
+#using the Limpet_Density data frame to summarize mean density, the standard deviation of density (with NA removed from the data frame), and the standard error of the density (which is a function of the standard deviation of density)
+#ungrouping the data to allow for proper calculations 
 ```
 
 Now create a summary table in which you calculate separate mean and standard deviation for each site and year (Shaws vs. Heisler vs. Treasure Cove)? What was the standard error? Round the mean and standard error to one decimal place. (look up the `round()` function!)
 
 ```{r}
 # use summarize() to calculate the mean and standard error (sd/sqrt(n)) for the two locations
-LimpetPopSummary <- Limpet_Density |>
+Limpet_Density
+#visualizing the data frame
+LimpetPopSummary <- Limpet_Density |> 
+  group_by(site, year) |> 
+  summarize(
+    mean_density=mean(density,na.rm=TRUE), #mean
+    sd_density=sd(density,na.rm=TRUE), #sd
+    n =n() , # count
+    se_density = sd_density/sqrt(n())) |>  # standard error
+  #na.rm means to remove the na in rhe data frames
+  mutate_at(vars(mean_density, sd_density, se_density), # bonus line to reduce digits
+            .funs = round, 1) 
+#grouping the data frame by site and year
+#using the summarize function to make calculations of the mean, standard deviation, and standard error of the density
+#counting the rows of the data frame using the count function
+#mutating the data frame to create a table with the values calculated in the summary function
+#rounding to one decimal place using the round function
   
-  
+
+LimpetPopSummary
+#visualizing the new data frame before organizing it into a nice table
   
   
  
 # Display your summary nicely using kable(). 
 knitr::kable(LimpetPopSummary)
+#using kable to display the summary in a table
 ```
 
 #### 2.4 Make three graphs to visualize the difference in density between the two sites.
@@ -352,26 +412,49 @@ knitr::kable(LimpetPopSummary)
 Boxplot, using the `Limpet_density` object, using fill for year. Label the Y-axis to say "Limpets per square meter".
 
 ```{r}
-Limpet_Density |> ggplot() + 
- 
-  
+Limpet_Density |> 
+  ggplot() + 
+  aes(x=site,
+      y=density, fill=year)+
+  labs(title = "Limpet Density per square meter based on Site",
+       y = "Limpets per square Meter", x = "Site")+
+  geom_boxplot()
+#creating a boxplot from the Limpet_Density data frame, ensuring that the x axis is site and the y axis is density
+#adding the fill command to have colors of the boxes correlated to year
+#adding labels for the title and axes
 ```
 
 A column plot with errorbars, and fill = year, using your new `LimpetPopSummary` object. Make sure to label the y-axis appropriately.
 
 ```{r}
-LimpetPopSummary |> ggplot()+
- 
-  
-  
-
+LimpetPopSummary |> 
+  ggplot()+
+  aes(x=site,
+      y=mean_density, fill=year)+
+  labs(title = "Limpet Density per square meter based on Site",
+       y = "Limpets per square Meter", x = "Site")+
+  geom_col(position=position_dodge())+
+  geom_errorbar(aes(ymin=mean_density-se_density,ymax=mean_density+se_density),
+                position=position_dodge(0.9), 
+                width=0.2)
+#creating a boxplot from the Limpet_Density data frame, ensuring that the x axis is site and the y axis is density
+  #adding the fill command to have colors of the boxes correlated to year
+  #adding labels for the title and axes
+#changing the positioning of the columns to give more space between them
+#adding error bars and changing the spacing between them using the position function 
 ```
 
 A `geom_point()` or `geom_jitter()`plot to visualize individual transect density observations
 
 ```{r}
-Limpet_Density |> ggplot() + 
-  
+Limpet_Density
+
+Limpet_Density |> 
+  ggplot() + 
+  aes(x=transect_num, y=density)+
+  labs(title = "Density by Transect Number",
+       y = "Limpets per square Meter", x = "Transect Number")+
+  geom_point()
   
   
   
@@ -383,13 +466,13 @@ Based on these plots, does your data meet assumptions for a t-test?
 
 T-Test assumptions (for a Student's T-test)
 
--   Are the data continuous (i.e., not categorical/discrete)?
+- Are the data continuous (i.e., not categorical/discrete)?
 
--   Have the sample data been randomly sampled from a population?
+- Have the sample data been randomly sampled from a population?
 
--   Is there homogeneity of variance (i.e., the variability of the data in each group is similar)?
+- Is there homogeneity of variance (i.e., the variability of the data in each group is similar)?
 
--   Is the distribution of the model residuals approximately normal?
+- Is the distribution of the model residuals approximately normal?
 
 #### 2.5 What is the sample size (of transects) for each site/year for our study of limpet population density?
 
@@ -462,11 +545,11 @@ We have a much larger sample size for shell lengths than we did for density, so 
 
 T-Test assumptions (for a Student's T-test)
 
--   Are the data continuous (i.e., not categorical/discrete)? **YES**
+- Are the data continuous (i.e., not categorical/discrete)? **YES**
 
--   Have the sample data been randomly sampled from a population? **(Yes)**
+- Have the sample data been randomly sampled from a population? **(Yes)**
 
--   Is there homogeneity of variance (i.e., the variability of the data in each group is similar)? **NO**
+- Is there homogeneity of variance (i.e., the variability of the data in each group is similar)? **NO**
 
 ```{r}
 ## Test for Homogeneity of Variance with an F-Test
@@ -488,7 +571,7 @@ var.test(     )
 
 ```
 
--   Is the distribution of the model residuals approximately normal?
+- Is the distribution of the model residuals approximately normal?
 
 ```{r}
 ## Test for normality
@@ -560,9 +643,9 @@ All_Territories |>
 
 Create new columns for:
 
--   territory area in square millimeters from the "`numbsquares`" column
+- territory area in square millimeters from the "`numbsquares`" column
 
--   Limpet body mass from shell length (equation below is from Fenberg et al. 2013).
+- Limpet body mass from shell length (equation below is from Fenberg et al. 2013).
 
 ```{r}
 All_Territories_area_mass <- All_Territories |> 
