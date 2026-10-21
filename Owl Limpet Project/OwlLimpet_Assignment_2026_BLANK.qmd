@@ -479,7 +479,11 @@ T-Test assumptions (for a Student's T-test)
 Is it roughly the same so that we can compare? Is it enough to run a statistical test?
 
 ```{r}
-Limpet_Density |> 
+Limpet_Density |>   
+  group_by(site, year) |> 
+  summarize(
+    n =n() , # count
+  ) 
 ```
 
 #### 2.6. Does average number of owl limpets per square meter differ significantly between Heisler Park and Shaws Cove?
@@ -489,30 +493,85 @@ Filter the data to only include those sites before putting it into the `t.test()
 ```{r t-test}
 # run a t-test on your count data from each site (Limpet_Density)
 ShawsHeislerDensity <- Limpet_Density |> 
+  dplyr::filter(site!="Treasure Cove")
 
-
-t.test(     , data = ShawsHeislerDensity)
+ShawsHeislerDensity
+t.test( density~site  , data = ShawsHeislerDensity)
 
 ```
 
-Explain the results of this t-test. Are you surprised by this result, given the figure you made above? Why do you think the results are what they are?
+**Explain the results of this t-test. Are you surprised by this result, given the figure you made above? Why do you think the results are what they are?**
+
+[The p-value is 0.2754, which is greater than 0.05. This means that there is no significant difference in densities based on site.]{.underline}
 
 #### 2.7 Did Treasure Cove population density differ between the two sample years? Do a t-test and make a graph to complement presenting the result.
 
 ```{r}
 TC_density <- Limpet_Density |>
+  dplyr::filter(site=="Treasure Cove")
+TC_density
+t.test(  density~year, data=TC_density)
 
-t.test(    )
+ggplot(TC_density) +
+  aes(x = year, 
+      y = density) +
+  ggtitle("Treasure Cove Density by Year") +
+  xlab("Year") +
+  ylab("Owl Limpet Density") +
+  geom_boxplot()
+
+
 ```
 
 Since there was no difference in means, we'll ignore year at Treasure Cove from now on and just pool our data to make it easier for ourselves.
 
 #### 2.8 EXTRA CREDIT: Do an ANOVA comparing Shaws, Heisler, and Treasure Cove 2025 density data (exclude 2023 so that the sample size is similar between all three). Use a Tukey post-hoc test. Explain the results.
 
+bartlett.test(density\~site, data=LD_sht)
+
+\# Bartlett Test of Homogeneity of Variances
+
 ```{r}
+Limpet_Density
+ LD_sht<- Limpet_Density |>
+  dplyr::filter(year!="2023")
+LD_sht
+#IV is site, DV is density
+model <- lm(density ~ site, data = LD_sht)
+ggplot(LD_sht) + 
+  aes(x = site, y = density) + 
+  geom_boxplot()
+#making a boxplot to visualize data
+plot(model, which = 2)
+#looking for normalitt
+shapiro.test(model$residuals)
+#p value is 0.03984 which is less than 0.05, indicating that the data is normal
+plot(model, 1)
+
+plot(model)
+
+bartlett.test(density~site, data=LD_sht)
+# Bartlett Test of Homogeneity of Variances
+
+anova(model)
 
 
+# what do we expect to be our df for MS within? 
+nrow(LD_sht) # n number of observations
+#30
+length(unique(LD_sht$site)) # k number of groups
+#3
+# Expected df for Site is k - 1
+length(unique(LD_sht$site)) - 1
+#2
+
+
+
+TukeyHSD( aov( density ~ site, data = LD_sht ) )
+#
 ```
+
+[The ANOVA resulted in a p value of 0.007656, which is less than 0.05. This indicates there is a significant difference between two of the site densities. The post-hoc Tukey test indicates that there is a significant difference between the densities of Treasure Cove and Shaws Cove, with a p value of 0.0058490, which is less than 0.05.]{.underline}
 
 ## Part 3: Size
 
@@ -523,16 +582,46 @@ Since there was no difference in means, we'll ignore year at Treasure Cove from 
 ```{r summary statistics }
 # generate a nice table (like you did for counts, using kable() and round digits) with the mean shell length, standard deviation, and sample size of each site. Ignore transect. 
 
-SizeData_2022_2025 |> 
+# use summarize() to calculate the mean and standard error (sd/sqrt(n)) for the two locations
+SizeData_2022_2025
+#visualizing the data frame
+SizeData_length<-SizeData_2022_2025 |> 
+  group_by(site, year) |> 
+  summarize(
+    mean_length=mean(shell_length_mm,na.rm=TRUE), #mean
+    sd_length=sd(shell_length_mm,na.rm=TRUE), #sd
+    n =n() , # count
+    se_length= sd_length/sqrt(n())) |>  # standard error
+  #na.rm means to remove the na in rhe data frames
+  mutate_at(vars(mean_length, sd_length, se_length), # bonus line to reduce digits
+            .funs = round, 1) 
+#grouping the data frame by site and year
+#using the summarize function to make calculations of the mean, standard deviation, and standard error of the density
+#counting the rows of the data frame using the count function
+#mutating the data frame to create a table with the values calculated in the summary function
+#rounding to one decimal place using the round function
 
-  
+
+SizeData_length
+#visualizing the new data frame before organizing it into a nice table
+
+
+
+# Display your summary nicely using kable(). 
+knitr::kable(SizeData_length)
+#using kable to display the summary in a table
 ```
 
 ##### 3.1.2 Graph the shell lengths at each site using a boxplot. What do you observe?
 
 ```{r}
 ggplot(SizeData_2022_2025) +
-
+  aes(x = site, 
+      y = shell_length_mm) +
+  ggtitle("Treasure Cove Shell Length by Site") +
+  xlab("Site") +
+  ylab("Owl Limpet Shell Length") +
+  geom_boxplot()
   
   
 ```
@@ -554,19 +643,20 @@ T-Test assumptions (for a Student's T-test)
 ```{r}
 ## Test for Homogeneity of Variance with an F-Test
 
+#  Test of Homogeneity of Variances
 # create the appropriate filter to include only Treasure Cove and CDM data
-CDM_TC_Sizes <- SizeData_2022_2025 |> 
-
-  
+CDM_TC_Sizes <-SizeData_2022_2025 |> 
+  dplyr::filter(site!="Shaws Cove" & site!="Heisler Park")
+CDM_TC_Sizes  
 # set the linear model for testing the assumptions
-model <- lm(   )
-
+model <- lm( shell_length_mm~site, data=CDM_TC_Sizes  )
 # Examine plot of Residuals vs. Fitted values
 plot(model, which = 1)
 
 # F-test for homogeneity of variance - if p-value < 0.05 then variances are different. 
-var.test(     )
 
+var.test(shell_length_mm~site, data=CDM_TC_Sizes)
+#p value is 0.03659 which is less than 0.05
 # NOTE: if your sample fails this test, have no fear! Welch's t-test (the default that R uses) is okay to use with unequal variances. 
 
 ```
@@ -581,6 +671,7 @@ plot(model, which = 2)
 
 # conduct a Shapiro-Wilk test on the residuals
 shapiro.test(model$residuals)
+#p is greater than 0.05, but shapiro is overly sensitive with large sample sizes
 ```
 
 Why will we not pay attention to this Shapiro-Wilk test result? Because the sample size is very large and Shapiro-Wilk is overly sensitive (gives false positives) at large sample sizes.
@@ -589,17 +680,40 @@ Why will we not pay attention to this Shapiro-Wilk test result? Because the samp
 
 ```{r t-test or Wilcox}
 # calculate the t-test results
-t.test(      )
+
+t.test(shell_length_mm ~ site, data = CDM_TC_Sizes)
+
 ```
+
+The p-value is much less than 0.05, meaning there is a significant difference between site and shell length.
 
 #### [3.3 Graph your results using a column plot with error bars for standard error]{.underline}
 
 For full credit, have well centered error bars and professionally labeled axes (they should not say "mean", they should say the variable name).
 
 ```{r}
-CDM_TC_Sizes |>
-  
-
+CDM_TC_Sizes |> 
+  group_by(site,year) |> 
+  summarize(
+    mean_length=mean(shell_length_mm,na.rm=TRUE), #mean
+    sd_length=sd(shell_length_mm,na.rm=TRUE), #sd
+    n =n() , # count
+    se_length= sd_length/sqrt(n())) |>  # standard error
+  #na.rm means to remove the na in rhe data frames
+  mutate_at(vars(mean_length, sd_length, se_length), # bonus line to reduce digits
+            .funs = round, 1) |> 
+  ggplot()+
+  aes(x=site,
+      y=mean_length, fill=year)+
+  labs(title = "Average Limpet Shell Length based on Site",
+       y = "Average Limpet Shell Length", x = "Site")+
+  geom_col(position=position_dodge()) +
+  geom_errorbar(aes(
+    ymin=mean_length-se_length,
+    ymax=mean_length+se_length), 
+    position = position_dodge(0.9),
+    width=0.2)
+CDM_TC_Sizes
 ```
 
 #### [3.4 - Interpret and explain the results of your test]{.underline}
@@ -627,9 +741,14 @@ If you would like to test whether size differs by predicted human impact, at CDM
 Clean up and combine the 2023, 2024 and 2025 data for Territories:
 
 ```{r}
+All_Territories
 load(file = "Data/All_Territories.Rdata")
-
+all_terr_tidy<-
+  All_Territories |> 
+  select(location, size_mm, numbsquares, site, year, habitat)
 load(file = "Data/FenbergTerr.Rdata")
+FenbergTerr
+all_terr_tidy
 ```
 
 #### 4.2 How many limpet territories did we measure?
@@ -637,7 +756,16 @@ load(file = "Data/FenbergTerr.Rdata")
 ```{r}
 ## How many territories were measured at each site in each year? 
 All_Territories |> 
+  group_by(site, year) |> 
+  count() 
 ```
+
+| Site          | Year | Number of Territories |
+|:--------------|-----:|----------------------:|
+| Heisler Park  | 2024 |                    54 |
+| Shaws Cove    | 2024 |                    83 |
+| Treasure Cove | 2023 |                    51 |
+| Treasure Cove | 2025 |                   190 |
 
 #### 4.3 Calculate meaningful variables from our measured values
 
@@ -648,15 +776,18 @@ Create new columns for:
 - Limpet body mass from shell length (equation below is from Fenberg et al. 2013).
 
 ```{r}
-All_Territories_area_mass <- All_Territories |> 
+All_Territories_area_mass <- all_terr_tidy |> 
   # create a new column for territory area in mm^2 using the "numbsquares" column
          # mesh = 19 mm x 19 mm 
-
-
+  mutate(area_mm2 = numbsquares*19*19) |> 
+  mutate(mass_g=0.00009*size_mm^3.0471)
+All_Territories_area_mass
   # create a new column for limpet body mass
   # formula: mass_g = 0.00009*length ^ 3.0471
 
 ```
+
+\_
 
 #### 4.4. Is there a relationship between limpet size and territory size?
 
@@ -664,23 +795,50 @@ Explore the relationship between mass_g, and area_mm2 using scatter plots.
 
 ```{r}
 # plot size_mm vs area_mm2 scatterplot with best fit regression line, no SE zone, not separated by site
+
+
 All_Territories_area_mass |> 
-  ggplot() + 
-  
+  ggplot()+
+  aes(size_mm,area_mm2) + 
+  geom_point()
+#plot without regression line
+hist(All_Territories_area_mass$size_mm)
+hist(All_Territories_area_mass$area_mm2)
+
+terr.lm <- lm(size_mm ~ area_mm2, data =All_Territories_area_mass)
+terr.lm
+plot(terr.lm)
+plot(terr.lm, which = 1)
+
+
+terr.plot <-
+  All_Territories_area_mass |> 
+  ggplot()+
+  aes(x=size_mm,y=area_mm2) + 
+  geom_point()
+
+terr.plot +
+  geom_smooth(method = "lm", se = FALSE)
 ```
 
 ```{r}
 ## Scatter plot with site mapped to color
-All_Territories_area_mass |>
-  ggplot() + 
- 
+
+  All_Territories_area_mass |> 
+  ggplot()+
+  aes(x=size_mm,y=area_mm2, color=site) + 
+  geom_point()
 ```
 
 ```{r}
 #  mass_g vs. area_mm2 scatterplot with best fit regression line, no SE zone, faceted by habitat
-All_Territories_area_mass |>
-  ggplot() + 
-  
+All_Territories_area_mass
+  All_Territories_area_mass |> 
+  ggplot()+
+  aes(x=size_mm,y=area_mm2, color=site) + 
+  geom_point()+
+  geom_smooth(method = "lm", se = FALSE)+
+    facet_wrap(~habitat)
 ```
 
 #### 4.5 What observations do you make about these plots? What do you find interesting about them? Explain one observation and make one more plot of your choosing to explore something you found interesting.
