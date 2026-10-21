@@ -852,10 +852,10 @@ All_Territories_area_mass
 ```{r}
 
 # write a linear model for the relationship, then use the plot() function on the model object to show the residuals vs. fitted values and QQ plots to assess your regression. 
-
-linear_model <- lm(     )
-
-plot(linear_model)
+terr.lm <- lm(size_mm ~ area_mm2, data =All_Territories_area_mass)
+terr.lm
+plot(terr.lm)
+plot(terr.lm, which = 1)
 ```
 
 One way to transform data that has this shape is to apply a log-transformation. Logarithmic relationships are common in biology for mass, volume, or other spatial relationships.
@@ -865,24 +865,31 @@ One way to transform data that has this shape is to apply a log-transformation. 
 ```{r scatterplot with regression line}
 # plot a scatterplot log area on y axis by log mass_g on x axis, best fit regression line but no SE interval
 
-All_Territories_area_mass |> ggplot() + 
-
+All_Territories_area_mass |> 
+  ggplot() + 
+  aes(log(mass_g), log(area_mm2))+
+  geom_smooth(method = "lm", se = FALSE)+
+  geom_point()
 ```
 
 ```{r}
 # write the linear model object and examine the residual and QQ plots
-log_model <- lm(     )
+log_model <- lm(log(size_mm) ~ log(area_mm2), data =All_Territories_area_mass)
   
 plot(log_model, which = 1)
 plot(log_model, which = 2)
+
 ```
 
 #### 4.8. What is the formula for the best fit line for the relationship between territory size and body mass in owl limpets?
 
 ```{r linear regression test summary}
-
-
-
+summary(log_model)
+slope <- coef(log_model)[2]
+slope
+intercept <- coef(log_model)[1]
+intercept
+#
 ```
 
 **The formula for the best fit line can be extracted from the model summary. The two values in the Estimate column are the coefficients - (Intercept) gives the y-intercept, and the variable gives the slope.**
