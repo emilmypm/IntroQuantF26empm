@@ -466,6 +466,8 @@ Limpet_Density |>
 
 Which plot do you find the most informative and useful and why?
 
+The Limpet Population summary column plot that I titled, "Density per Square Meter Based on site" was very informative for me because it helped me begin to make comparisons of limpet density based on site, and year.
+
 Based on these plots, does your data meet assumptions for a t-test?
 
 T-Test assumptions (for a Student's T-test)
@@ -481,6 +483,8 @@ T-Test assumptions (for a Student's T-test)
 #### 2.5 What is the sample size (of transects) for each site/year for our study of limpet population density?
 
 Is it roughly the same so that we can compare? Is it enough to run a statistical test?
+
+[yes, it is roughly the same, so statistical tests can be ran]{.underline}
 
 ```{r}
 Limpet_Density |>   
@@ -684,6 +688,8 @@ var.test(shell_length_mm~site, data=CDM_TC_Sizes)
 
 - Is the distribution of the model residuals approximately normal?
 
+  No, the data is clumped on either side of the figure.
+
 ```{r}
 ## Test for normality
 
@@ -748,6 +754,8 @@ CDM_TC_Sizes
 #### [3.4 - Interpret and explain the results of your test]{.underline}
 
 Are we pretty confident that these samples were drawn from different populations? Why is the standard error so small?
+
+[Yes, we are confident that these samples were drawn from different populations. The p-value is much less than 0.05, indicating that the sites have significantly different populations. The standard error is so small because we have a very large sample size, making the analyses more precise than if we had a smaller sample size. This large sample size leaves less room for error when it comes to the determinations of the analyses.]{.underline}
 
 #### 3.5 - EXTRA CREDIT: repeat this analysis to see if the same result holds for the comparison at Heisler Park (high impact site) vs. Shaws Cove (low impact site).
 
