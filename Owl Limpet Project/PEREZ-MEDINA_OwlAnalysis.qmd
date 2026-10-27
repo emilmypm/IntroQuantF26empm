@@ -596,11 +596,14 @@ TukeyHSD( aov( density ~ site, data = LD_sht ) )
 [The ANOVA resulted in a p value of 0.01497, which is less than 0.05. This indicates there is a significant difference between two of the site densities. The post-hoc Tukey test indicates that there is a significant difference between the densities of Treasure Cove and Shaws Cove, with a p value of 0.0058490, which is less than 0.05.]{.underline}
 
 ```{r}
-limpet_hab <- No_CDM_Sizes |>
+limpet_hab <-SizeData_2022_2025 |>
   group_by(site, shell_length_mm, habitat, year) |> 
   summarize(count=n()) |> 
-  dplyr::filter(year!="2023")
-limpet_hab
+  dplyr::filter(year!="2023", site!="Corona del Mar")
+
+  limpet_hab
+
+
 
 length_hab <- lm(shell_length_mm ~ habitat, data = limpet_hab)
 length_hab
@@ -616,9 +619,11 @@ bartlett.test(shell_length_mm~habitat, data=limpet_hab)
 # Bartlett Test of Homogeneity of Variances
 
 t.test(shell_length_mm ~ habitat, data = limpet_hab)
+t.test(count ~ habitat, data = limpet_hab)
 
+#length and habitat not significant, 0.09277
+#count and habitat was 0.009128
 
-#not significant, 0.09277
 ```
 
 ## Part 3: Size
