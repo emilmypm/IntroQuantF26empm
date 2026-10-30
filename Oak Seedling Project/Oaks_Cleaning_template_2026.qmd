@@ -90,13 +90,15 @@ Before you can analyze your specific questions, you need to clean up and get a s
 
     2.  More interesting questions might include: Is there a relationship between these variables? Why is there a pattern where one is higher in only that variable?
 
-2.  **Search for answers by visualizing, transforming, and modelling your data.**
+<!-- -->
+
+1.  **Search for answers by visualizing, transforming, and modelling your data.**
 
     1.  You can identify problems (like outliers or NA values) by plotting data, or transforming and manipulating it. Answers might include: That outlier was entered incorrectly from the original datasheets, OR it keyed to the wrong species; This variable won't plot because R originally read it in as a character instead of a number (and some lines had words entered instead of NA). You can use these answers to
 
     2.  Visualizing = plotting, transforming = calculating new variables, log transformations, etc. and modelling = fitting linear models/ANOVA tests to the data.
 
-3.  **Use what you learn to refine your questions and/or generate new questions.**
+2.  **Use what you learn to refine your questions and/or generate new questions.**
 
     1.  Let this lead you! Maybe you find a relationship between two variables. Does that mean there is also a relationship with a third variable? Check it out! Today is about looking at EVERYTHING, not just your specific research question.
 
@@ -140,6 +142,49 @@ In this section we will look at and clean up each of the data sets you identifie
 You may be either examining `SPAD_Data_Raw`, `Height_Data_Raw`, `LICOR_Data_Raw`, or `Moist_Data_Raw` for your ANOVA question. Examine your data set using the diagnostic functions I've given you above in the How to Examine and Clean Data section.
 
 ```{r}
+view(Moist_Data_Raw)
+#view it in separate window
+nrow(Moist_Data_Raw)
+#how many rows
+dim(Moist_Data_Raw)
+#number of rows and columns respectively
+glimpse(Moist_Data_Raw)
+#glimpse of the data, too complicated! 
+
+ncol(Moist_Data_Raw)
+#how many columns
+str(Moist_Data_Raw)
+#looking at it all...
+names(Moist_Data_Raw)
+#looking at all names of columns
+moistdataclean<-
+Moist_Data_Raw |> 
+select(Date, Treatment, VWC1_perc, VWC2_perc, VWC3_perc) |> 
+na.omit() |> 
+  arrange(Date, Treatment) |> 
+  mutate(vwc1 = as.numeric(VWC1_perc)) |> 
+  mutate(vwc2= as.numeric(VWC2_perc)) |> 
+  mutate(vwc3= as.numeric(VWC3_perc)) |> 
+  mutate(date=as.character.Date(Date))
+?select
+moistdatacleaner<-
+  moistdataclean |> 
+select(!c(VWC1_perc,VWC2_perc,VWC3_perc)) |> 
+  select(!(Date))
+moistdatacleaner
+moistdataanova<-
+  na.omit(moistdatacleaner) |> 
+  mutate(avg.moisture=((vwc1+vwc2+vwc3)/3)) |> 
+  select(!c(vwc1,vwc2,vwc3)) |> 
+  mutate(avgmoisture=round(avg.moisture,3)) |> 
+  select(!(avg.moisture))
+  
+typeof(moistdataanova$avg.moisture)
+typeof(moistdataanova$date)
+typeof(moistdataanova$avgmoisture)
+  view(moistdataanova)
+  summary(moistdataanova$avgmoisture)
+
 
 ```
 
@@ -152,8 +197,28 @@ Read about joins here: <https://r4ds.hadley.nz/joins>
 Check out the illustrative animations on this page: <https://github.com/gadenbuie/tidyexplain?tab=readme-ov-file#mutating-joins>
 
 ```{r}
-Height_Data <- Height_Data_Raw |> 
-  
+
+  moistdataclean<-
+  Moist_Data_Raw |> 
+  select(Date, Treatment, VWC1_perc, VWC2_perc, VWC3_perc) |> 
+  na.omit() |> 
+  arrange(Date, Treatment) |> 
+  mutate(vwc1 = as.numeric(VWC1_perc)) |> 
+  mutate(vwc2= as.numeric(VWC2_perc)) |> 
+  mutate(vwc3= as.numeric(VWC3_perc)) |> 
+  mutate(date=as.character.Date(Date))
+?select
+moistdatacleaner<-
+  moistdataclean |> 
+  select(!c(VWC1_perc,VWC2_perc,VWC3_perc)) |> 
+  select(!(Date))
+
+moistdataanova<-
+  na.omit(moistdatacleaner) |> 
+  mutate(avg.moisture=((vwc1+vwc2+vwc3)/3)) |> 
+  select(!c(vwc1,vwc2,vwc3)) |> 
+  mutate(avgmoisture=round(avg.moisture,3)) |> 
+  select(!(avg.moisture))
   # use notes like this to create a checklist of the things that need to be fixed, then you can fill in code between each line as you fix them. 
 
   # Thing to fix #2
@@ -167,6 +232,24 @@ Repeat the steps you took for your ANOVA data for your second data set of choice
 
 ```{r}
 # View data set
+view(SPAD_Data_Raw)
+spaddataclean<-
+  SPAD_Data_Raw |> 
+  select(Date, Treatment, Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6) |> 
+  na.omit() |> 
+  arrange(Date, Treatment) |> 
+  mutate(date=as.character.Date(Date)) |> 
+  select(!(Date))
+spaddataclean
+spaddatareg<-
+  na.omit(spaddataclean) |> 
+  mutate(avg.spad=((Leaf1+Leaf2+Leaf3+Leaf4+Leaf5+Leaf6)/6)) |> 
+  select(!c(Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6)) |> 
+  mutate(avgspad=round(avg.spad,3)) |> 
+  select(!(avg.spad))
+view(spaddatareg)
+summary(spaddatareg$avgspad)
+
 ```
 
 ```{r}
@@ -193,4 +276,75 @@ Go for it!
 
 ```{r}
 
+  moistdataanova |> 
+  ggplot()+
+  aes(x=avgmoisture)+
+  geom_histogram()
+
+```
+
+```{r}
+moistdataanova
+moistdatabp<-
+  moistdataanova|> 
+  ggplot() + 
+  aes(x=Treatment,
+      y=avgmoisture, fill=date)+
+  labs(title = "Average Soil Moisture by Treatment and Date",
+       y = "Average Soil Moisture in percentage", x = "Treatment")+
+  geom_boxplot()
+moistdatabp
+```
+
+```{r}
+
+moistdataanovasum<- 
+  moistdataanova |> 
+  group_by(Treatment,date,avgmoisture
+  ) |> 
+  summarize(
+    mean_moist=mean(avgmoisture,na.rm=TRUE), #mean
+    sd_moist=sd(avgmoisture,na.rm=TRUE), #sd
+    n =n() , # count
+    se_moist= sd_moist/sqrt(n()))|>  # standard error
+  #na.rm means to remove the na in rhe data frames
+  mutate_at(vars(mean_moist, sd_moist, se_moist), # bonus line to reduce digits
+            .funs = round, 1) 
+
+moistdataanovasum
+moistdatacol<-
+  moistdataanovasum|> 
+  ggplot() + 
+  aes(x=Treatment,
+      y=avgmoisture, fill=date)+
+  ylim(0,30)+
+  labs(title = "Average Soil Moisture by Treatment and Date",
+       y = "Average Soil Moisture in percentage", x = "Treatment")+
+  geom_col(position=position_dodge())+
+  geom_errorbar(aes(ymin=mean_moist-se_moist,ymax=mean_moist+se_moist))
+#,position=position_dodge(0.9), 
+#width=0.2)
+moistdatacol
+```
+
+```{r}
+spaddatareg |> 
+  ggplot()+
+  aes(x=avgspad)+
+  geom_histogram()
+```
+
+THIS IS WHERE I STOPPED 10/29/2026
+
+```{r}
+
+spaddatasp<-
+  spaddatareg|> 
+  ggplot() + 
+  aes(x=Treatment,
+      y=avgmoisture, fill=date)+
+  labs(title = "Average Soil Moisture by Treatment and Date",
+       y = "Average Soil Moisture in percentage", x = "Treatment")+
+  geom_boxplot()
+moistdatabp
 ```
