@@ -1,0 +1,505 @@
+---
+title: "Oaks_Cleaning_EDA_template"
+author: Amy King-Henry
+datemodified: October 29, 2026
+format: html
+editor: visual
+---
+
+Emily Perez-Medina
+
+# Oaks Exploratory Data Analysis
+
+For your final project analysis, you have been placed into groups, within which you can collaborate and help each other. Within your group, you will divide up the different data that is available to ask questions. You are required to address TWO questions each.
+
+1.  An ANOVA/GLM question that addresses the impact of the experimental treatments on a measured variable (SPAD, stomatal conductance, or height) in one of the two plant species.
+2.  A question of your choice that analyzes one of the abiotic variables (soil moisture, slope, aspect, etc.), past year data, or an interaction within the experiment.
+
+The following worksheet will guide you through developing your research questions, hypotheses, and analysis approach.
+
+### Load your packages
+
+```{r}
+library(tidyverse)
+library(readxl)
+```
+
+### Import all the data
+
+```{r}
+Height_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "Seedling Heights")
+
+Moist_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "Soil Moisture")
+
+SPAD_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "SPAD", 
+             na = "NA")
+```
+
+**Amy gives the gift of importing the LICOR objects for you:**
+
+```{r}
+LICOR_Data_Raw_NAMES <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx",              
+             sheet = "LICOR", 
+             n_max = 3, 
+             col_names = FALSE, 
+             col_types = "text") |> 
+  summarise(across(.fns = paste, collapse = "_")) |> 
+  unlist() |> 
+  unname()
+
+LICOR_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx",  
+             sheet = "LICOR", 
+             skip = 3, 
+             col_names = LICOR_Data_Raw_NAMES,
+             col_types = "text")
+
+
+ALL_Licor_NAMES <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "ALL_Licor_Ignore", 
+             n_max = 3, 
+             col_names = FALSE, 
+             col_types = "text") |> 
+  summarise(across(.fns = paste, collapse = "_")) |> 
+  unlist() |> 
+  unname()
+
+ALL_Licor <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "ALL_Licor_Ignore", 
+             skip = 3, 
+             col_names = ALL_Licor_NAMES, 
+             col_types = "text")
+
+LICOR_Data_Raw <- full_join(LICOR_Data_Raw, ALL_Licor)
+```
+
+## Exploratory Data Analysis:
+
+Before you can analyze your specific questions, you need to clean up and get a sense of the data. Exploratory Data Analysis has the following goals:
+
+1.  **Generate questions about your data.**
+
+    1.  [This is not just about your research questions!]{.underline} Questions might include: how many samples are there for each treatment? Why is there a weird outlier in that one variable? Why won't this variable plot?
+
+    2.  More interesting questions might include: Is there a relationship between these variables? Why is there a pattern where one is higher in only that variable?
+
+<!-- -->
+
+1.  **Search for answers by visualizing, transforming, and modelling your data.**
+
+    1.  You can identify problems (like outliers or NA values) by plotting data, or transforming and manipulating it. Answers might include: That outlier was entered incorrectly from the original datasheets, OR it keyed to the wrong species; This variable won't plot because R originally read it in as a character instead of a number (and some lines had words entered instead of NA). You can use these answers to
+
+    2.  Visualizing = plotting, transforming = calculating new variables, log transformations, etc. and modelling = fitting linear models/ANOVA tests to the data.
+
+2.  **Use what you learn to refine your questions and/or generate new questions.**
+
+    1.  Let this lead you! Maybe you find a relationship between two variables. Does that mean there is also a relationship with a third variable? Check it out! Today is about looking at EVERYTHING, not just your specific research question.
+
+## Data Cleaning
+
+### How to Examine and Clean Data
+
+In this section we will look at and clean up each of the data sets you identified that you would like to analyze in your research questions. What to look for when data cleaning:
+
+1.  Dimensions
+    1.  Does the data have the right number of rows? Are there blank rows of NAs at the bottom that need to be removed?
+        - `nrow()`, `dim()`, `glimpse()` to view counts of rows
+    2.  Do you have all the columns you need? Do you need to bring in additional information for context?
+        - `ncol()`, `str()`, `names()`, `glimpse()` to view column numbers and names
+        - `full_join()`, `inner_join()`, `left_join()` etc. to merge with other data based on matching columns
+        - Are there columns you won't use that you'd like to exclude for simplicity using `select()`
+2.  Column names
+    1.  Are your column names tidy (i.e., have no punctuation or spaces, consistent capitals)?
+        - `rename()` to fix column names
+        - Recommendation: rename some of those messy LICOR columns to more useful and memorable ones!
+3.  Data types
+    1.  Are your columns in the correct format?
+        - `typeof(data$variable)` or `glimpse()` to check column data type
+        - `mutate(variable = as.numeric())` to convert to numeric
+        - `mutate(variable = as.character())` to convert to string/word
+        - `mutate(variable = factor())` to convert to factor
+    2.  Do the values in your columns all match the format you want? (e.g., are there characters in a numeric column?
+        - `unique(data$variable)` to see all unique values in that column
+        - `mutate(variable = case_when([see Data Wrangling demo]))` to repair
+    3.  Are there any cells that contain two kinds of information and may need to be separated? (e.g. Tag_Num that also includes sapling A/B or A1, A2, or A3)
+        - `separate()` to create two new columns by splitting the data based on a delimiter
+4.  Irregular Values
+    1.  Do all the values make sense for your data set (e.g., outliers)
+        1.  `summary(df$variable)` gives the min & max and other values to see IF there is a weird value
+        2.  `which(df$variable == 102.0)` gives the ROW NUMBER of any rows that have that value
+        3.  If you find something weird, check it against the original data sheets, correct or remove with `filter()` if appropriate.
+        4.  View your data with histograms.
+
+### ANOVA dataset
+
+\*\*I examined and cleaned the data all in one chunk
+
+You may be either examining `SPAD_Data_Raw`, `Height_Data_Raw`, `LICOR_Data_Raw`, or `Moist_Data_Raw` for your ANOVA question. Examine your data set using the diagnostic functions I've given you above in the How to Examine and Clean Data section.
+
+```{r}
+view(Moist_Data_Raw)
+#view it in separate window
+nrow(Moist_Data_Raw)
+#how many rows
+dim(Moist_Data_Raw)
+#number of rows and columns respectively
+glimpse(Moist_Data_Raw)
+#glimpse of the data, too complicated! 
+
+ncol(Moist_Data_Raw)
+#how many columns
+str(Moist_Data_Raw)
+#looking at it all...
+names(Moist_Data_Raw)
+#looking at all names of columns
+moistdataclean<-
+Moist_Data_Raw |> 
+select(Date, Treatment, VWC1_perc, VWC2_perc, VWC3_perc) |> 
+na.omit() |> 
+  arrange(Date, Treatment) |> 
+  mutate(vwc1 = as.numeric(VWC1_perc)) |> 
+  mutate(vwc2= as.numeric(VWC2_perc)) |> 
+  mutate(vwc3= as.numeric(VWC3_perc)) |> 
+  mutate(date=as.character.Date(Date))
+# making a new dataframe called moistdataclean where I only display date, treatment, and the three vwc values
+# getting rid of the nas in the data frame
+#arranging the data by date and treatment 
+#renaming some of my data columns to be more simple, along with changing their formats (percentages to numerical values and dates to categorical )
+?select
+#looking at the select function and what it does 
+moistdatacleaner<-
+  moistdataclean |> 
+select(!c(VWC1_perc,VWC2_perc,VWC3_perc)) |> 
+  select(!(Date))
+#making a new data frame called moistdatacleaner and removing the original untidy columns
+moistdatacleaner
+#viewing the new dataframe
+moistdataanova<-
+  na.omit(moistdatacleaner) |> 
+  mutate(avg.moisture=((vwc1+vwc2+vwc3)/3)) |> 
+  select(!c(vwc1,vwc2,vwc3)) |> 
+  mutate(avgmoisture=round(avg.moisture,3)) |> 
+  select(!(avg.moisture)) |> 
+  mutate(date=case_when(
+    date=="2026-10-21" ~ "2026-10-15", 
+    date!="2026-10-21"~date
+  ))
+
+#making a new dataframe called moistdataanova
+#removing NAs 
+# calculating the average of the moisture percentages, adding it to the table, and removing the three separate observations
+#rounding the averages, adding it to the table, and removing the unrounded version
+#big big fix- date said 10.21, supposed to be 10.15, i changed it to what it should be
+typeof(moistdataanova$avg.moisture)
+typeof(moistdataanova$date)
+typeof(moistdataanova$avgmoisture)
+  view(moistdataanova)
+  summary(moistdataanova$avgmoisture)
+  #looking into the types of data each column is
+  # viewing the dataframe in a new window
+  #summarizing the moisture column to see if there are any outstanding outliers
+
+
+  
+  
+  ?replace
+  
+
+```
+
+In this next chunk, generate a cleaned data set following the example below. As you examine your raw data and find things to fix, add a #Note to create a list of things to fix up. You can then use pipes and write code to fix each thing in your checklist. This is also where if you identified `filters` or data computations in your Hypothesis worksheet (e.g., choose only one species), you can apply those.
+
+One specific thing you may need to do is JOIN two of the datasets, using common columns to match observations to each other. In the field, we recorded `Tag_Num`, `Seedling_AB_etc`, and `Block` as unique observations to identify trees across multiple datasets. Trees which were measured in multiple ways can be used to run a regression analysis.
+
+Read about joins here: <https://r4ds.hadley.nz/joins>
+
+Check out the illustrative animations on this page: <https://github.com/gadenbuie/tidyexplain?tab=readme-ov-file#mutating-joins>
+
+```{r}
+
+#line by line annotations in previous chunk, I will just emphasize main ideas for fixes here
+  moistdataclean<-
+  Moist_Data_Raw |> 
+  select(Date, Treatment, VWC1_perc, VWC2_perc, VWC3_perc) |> 
+  na.omit() |> 
+  arrange(Date, Treatment) |> 
+  mutate(vwc1 = as.numeric(VWC1_perc)) |> 
+  mutate(vwc2= as.numeric(VWC2_perc)) |> 
+  mutate(vwc3= as.numeric(VWC3_perc)) |> 
+  mutate(date=as.character.Date(Date))
+  #main fix: changing the data types so i can work with them in the anovas and renaming the columns so they make more sense
+  
+?select
+moistdatacleaner<-
+  moistdataclean |> 
+  select(!c(VWC1_perc,VWC2_perc,VWC3_perc)) |> 
+  select(!(Date))
+#main fix: clearning out columns that were used for calculations and are not needed anymore
+moistdataanova<-
+  na.omit(moistdatacleaner) |> 
+  mutate(avg.moisture=((vwc1+vwc2+vwc3)/3)) |> 
+  select(!c(vwc1,vwc2,vwc3)) |> 
+  mutate(avgmoisture=round(avg.moisture,3)) |> 
+  select(!(avg.moisture)) |> 
+  mutate(date=case_when(
+    date=="2026-10-21" ~ "2026-10-15", 
+    date!="2026-10-21"~date
+  ))
+  # main fix: finding the averages of the vwc percentages and dispplaying it on the table, along with deleting columns that were used for calculations and arent needed anymore
+#other main fix:fixing biiig data issue- date was wrong
+```
+
+### Regression dataset
+
+Repeat the steps you took for your ANOVA data for your second data set of choice/
+
+```{r}
+# View data set
+view(SPAD_Data_Raw)
+#viewing the raw data frame 
+spaddataclean<-
+  SPAD_Data_Raw |> 
+  select(Date, Treatment, Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6) |> 
+  na.omit() |> 
+  arrange(Date, Treatment) |> 
+  mutate(date=as.character.Date(Date)) |> 
+  select(!(Date))
+#making a new dataframe selecting only date, treatment, and the SPAD values by leaf
+#removing the NAs
+#arranging the data by date and treatment
+#changing the date column to be categorical
+#removing the old date column
+spaddataclean
+#visualiZing new dataframe
+spaddatareg<-
+  na.omit(spaddataclean) |> 
+  mutate(avg.spad=((Leaf1+Leaf2+Leaf3+Leaf4+Leaf5+Leaf6)/6)) |> 
+  select(!c(Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6)) |> 
+  mutate(avgspad=round(avg.spad,3)) |> 
+  select(!(avg.spad)) |> 
+  filter(avgspad>=10) |> 
+  left_join(moistdataanova) |> 
+  na.omit()
+#making a new dataframe called spaddatareg for the regression work
+#removing NAs from the dataframe
+#calculating the average of all SPAD values and adding it to the table as a column called avg.spad
+#removing the individual leaf SPAD values I used to make the calculations
+#rounding the avg SPAD values and removing the unrounded SPAD averages
+#filtering out any SPAD averages less than zero because the summary function below showed me that I had two SPAD averages under 10; when checking the notes in the raw data, these low values came from brown leaves, so I removed the values 
+#adding the moistdataanova dataframe 
+#removing the NAs once more
+view(spaddatareg) 
+#viewing the new data frame
+summary(spaddatareg$avgspad)
+##two outliers that i need to remove
+#this is where I checked for outliers, they will no longer show because i removed them, thats a good thing! 
+
+
+
+
+###other way to find the means- not what i did, but the means match yay!
+#spadmean<-spaddataclean |> 
+ # rowwise() |> 
+  #mutate(leaf_mean=mean(c(Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6), na.rm=TRUE)) |> 
+  #ungroup()
+#spadmean
+```
+
+```{r}
+#line by line annotations in previous chunk, I will just emphasize main ideas for fixes here
+
+  spaddataclean<-
+  SPAD_Data_Raw |> 
+  select(Date, Treatment, Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6) |> 
+  na.omit() |> 
+  arrange(Date, Treatment) |> 
+  mutate(date=as.character.Date(Date)) |> 
+  select(!(Date))
+  #mainfix:arranging data and changing data types so I can work with them
+spaddataclean
+spaddatareg<-
+  na.omit(spaddataclean) |> 
+  mutate(avg.spad=((Leaf1+Leaf2+Leaf3+Leaf4+Leaf5+Leaf6)/6)) |> 
+  select(!c(Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6)) |> 
+  mutate(avgspad=round(avg.spad,3)) |> 
+  select(!(avg.spad)) |> 
+  filter(avgspad>=10) |> 
+  left_join(moistdataanova) |> 
+  na.omit()
+#main fix: finding the averages of SPAD values so I can work with them in a regressopm
+#another main fix: joining the SPAD data with the soil moisture data so I can see if there is any correlation between the two
+view(spaddatareg) 
+
+```
+
+## Exploratory Data Analysis
+
+Now that your data is (probably, mostly!) clean, it is time to explore your data! Feel free to explore not just the variables/data set relevant to your research question, but to explore variables your teammates are examining as well. Use this space to generate more questions, identify if there are more things to fix in your data cleaning, etc.
+
+Not sure where to start?
+
+- Make a histogram of each variable and write down your observations
+
+- Plot variables against each other to explore relationships (boxplots and scatterplots are a good starting point)
+
+- Use facet_grid to explore different groupings of data
+
+**There are no wrong answers! If you make 3+ graphs and show you're thinking critically about them, you will get full credit for this assignment.**
+
+Go for it!
+
+```{r}
+
+  moistdataanova |> 
+  ggplot()+
+  aes(x=avgmoisture)+
+  geom_histogram()
+#histogram to visualize avg soil moisture, there doesnt seem to be any major outliers
+```
+
+```{r}
+moistdataanova
+#looking at my dataframe
+moistdatabp<-
+  moistdataanova|> 
+  ggplot() + 
+  aes(x=Treatment,
+      y=avgmoisture, fill=date)+
+  labs(title = "Average Soil Moisture by Treatment and Date",
+       y = "Average Soil Moisture in percentage", x = "Treatment")+
+  geom_boxplot()
+#making a boxplot and calling it moistdatabp
+#using treatment for x and avg moisture for y
+#titling it and labeling axes
+moistdatabp
+#visualizing the figure
+
+```
+
+[some interpretations]{.underline}
+
+- [There seems to be little to no data for natural recruits]{.underline}
+
+- [soil moisture seems to have a lot lower averages on the 8th than on the 15th, there was some rain between these two days, so this could be the reason- can look into it deeper with tests of differences later]{.underline}
+
+- [Dead Tree seemed to have some of the highest soil moistures]{.underline}
+
+```{r}
+
+moistdataanovasum<- 
+  moistdataanova |> 
+  group_by(Treatment,date,avgmoisture
+  ) 
+#was going to do error bars here, but i was having trouble, so i will fix this after more consultation with amy and irissa
+ 
+ # summarize(
+  #  mean_moist=mean(avgmoisture), #mean
+   # sd_moist=sd(avgmoisture), #sd
+    #n =n() , # count
+    #se_moist= sd_moist/sqrt(n()))|>  # standard error
+  #na.rm means to remove the na in rhe data frames
+  #mutate_at(vars(mean_moist, sd_moist, se_moist), # bonus line to reduce digits
+   #         .funs = round, 1) 
+
+moistdataanovasum
+#looking at my data
+moistdatacol<-
+  moistdataanovasum|> 
+  ggplot() + 
+  aes(x=Treatment,
+      y=avgmoisture, fill=date)+
+  ylim(0,20)+
+  labs(title = "Average Soil Moisture by Treatment and Date",
+       y = "Average Soil Moisture in percentage", x = "Treatment")+
+  geom_col(position=position_dodge())
+  #geom_errorbar(aes(ymin=mean_moist-se_moist,ymax=mean_moist+se_moist))
+#,position=position_dodge(0.9), 
+#width=0.2)
+
+#making a column plot called moistdatacol using tratment for x and average moisture for y
+#labelling axes and title
+#changing positions of the columns 
+moistdatacol
+#viewing the4 column plot
+```
+
+[some interpretations]{.underline}
+
+- [There seems to be little to no data for natural recruits, again]{.underline}
+
+- [soil moisture seems to have a lot lower averages on the 8th than on the 15th, there was some rain between these two days, so this could be the reason- can look into it deeper with tests of differences later]{.underline}
+
+- [Adult canopy seemed to have lower soil moisture on the 15th compared to Dead Tree and Open Space, which is not what I was expecting considering open space has no shade (i thought those numbers would be the lowest)- this could also be looked into deeper with tests of differences later]{.underline}
+
+```{r}
+spaddatareg |> 
+  ggplot()+
+  aes(x=avgspad)+
+  geom_histogram()
+#histogram for the avg spad values, there doesnt seem to be any more major outliers because i filtered out values under 10
+```
+
+```{r}
+spaddatareg
+hist(spaddatareg$avgspad)
+hist(spaddatareg$avgmoisture)
+#looks pretty normal
+spadmoist <- lm(avgspad~avgmoisture, data=spaddatareg)
+plot(spadmoist)
+#QQ plot shows it is normal 
+summary(spadmoist)
+#look at coefficients, the speed estimated std. is the slope of the line
+slope <- coef(spadmoist)[2]
+#2 is in brackets to say i only want the second one in the series, doesnt provide intercept value
+slope
+#slope is -0.224
+int <- coef(spadmoist)[1]
+#1 is in brackets- viceversa to say i only want the first value in the series, doesnt provide slope/speed
+int
+#intercept is 34.50514
+summary(spadmoist)$coefficients[2,4]
+#very very small
+Rsq <- summary(spadmoist)$r.squared
+Rsq
+#0.16, not that good of a correlation, not close to 1
+
+
+
+spaddatasp<-
+  spaddatareg|> 
+  ggplot() + 
+  aes(x=avgmoisture,
+      y=avgspad, color=Treatment)+
+  ylim(0,40)+
+  xlim(0,3)+
+  labs(       y = "Average SPAD value", x = "Average Soil Moisture in Percentage")+
+  geom_point()
+#making a plot and calling it spaddatasp
+#using moisture as x and spad as y
+#using color to indicate treatment
+#setting a domain and range
+#labelling axes
+spaddatasp
+#visualizing plot
+```
+
+[some interpretations]{.underline}
+
+- [There seems to be much less data for natural recruits again]{.underline}
+
+- [From a visual standpoint, there is no outstanding trend, this could be because of the very low r squared value, meaning the soil moisture and SPAD value are not strongly correlated]{.underline}
+
+- [Dead Tree data seems to be clustured at very low soil moistures and very high soil moistures, there are not many points in the middle]{.underline}
+
+- [Natural Recruits and open space have the lowest SPAD values compared to the other microhabitats]{.underline}
+
+- [Adult canopy seems to have very little data as well, only 4 points]{.underline}
