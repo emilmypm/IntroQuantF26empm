@@ -326,8 +326,8 @@ pg
 
 ```{r}
 ggplot(pg)+
-  aes(nutrient, growth)+
-  geom_point() + 
+  aes(x=nutrient, y=growth)+
+  geom_point() +
   geom_smooth(method = "lm")
 ```
 
@@ -339,12 +339,14 @@ Does our line look better if we transform our independent variable?
 
 ```{r}
 ggplot(pg)+
-  aes(log(nutrient), growth)+
-  geom_point()
+  aes(x=log(nutrient), y=growth)+
+  geom_point() +
+  geom_smooth(method = "lm")
 
 ggplot(pg)+
-  aes((nutrient), log(growth))+
-  geom_point()
+  aes(x=nutrient, y=log(growth))+
+  geom_point() +
+  geom_smooth(method = "lm")
 ```
 
 To fit a linear model, you just plug in the log-transformed variable into the same linear model function that we used before.
@@ -356,6 +358,7 @@ pg.lm_bad <- lm(growth ~
 plot(pg.lm_bad)
 
 pg.lm <- lm(growth ~ log(nutrient), data = pg)
+plot(pg.lm)
 summary(pg.lm)
 ```
 
@@ -368,14 +371,17 @@ It still fits a `y = mx+b` framework, but now the x is log-transformed
 a = analogous to slope (estimate) c = intercept
 
 | growth = 5.10 Ln (nutrient) + 0.69
+| #estimate where it says log(nutrient) and intercept 
 
 #### Step 8: Communicate results with a plot and writing.
 
 ```{r}
-pg_plot <- ggplot(pg)+
+pg_plot <- 
+  ggplot(pg)+
   aes(x=nutrient, y=growth)+
   geom_point()
-pg_plot_plusline <- pg_plot +
+pg_plot_plusline <- 
+  pg_plot +
   geom_smooth(
     method="lm",
     se=FALSE,
@@ -386,16 +392,17 @@ pg_plot_plusline
 ```
 
 ```{r}
-pg_plot <- ggplot(pg) + 
+pg_plot_straight <- ggplot(pg) + 
   aes(x=log(nutrient), y=growth) + 
   geom_point() + geom_smooth(method="lm",se=FALSE)
-pg_plot
+pg_plot_straight
 ```
 
 Then we can also add our text to the plot with the equation and R-squared or whatever other information.
 
 ```{r}
-summary(pg.lm)
+summary(pg.lm)$r.squared
+summary(pg.lm)$coefficients
 
 
 pg_plot_plusline + 
@@ -409,13 +416,15 @@ Not all linear data looks like a straight line. Sometimes a relationship can be 
 #### Step 1: What does the data look like?
 
 ```{r}
-
+bbel
 ```
 
 #### Step 2: Visualize the data
 
 ```{r}
-bbel_plot <- 
+bbel_plot <- ggplot(bbel)+
+  aes(x=light, y=abund)+
+  geom_point()
 
 bbel_plot
 ```
@@ -433,9 +442,9 @@ The `I()` tells R to "isolate" that segment and treat it properly here - just a 
 #### Run the model
 
 ```{r}
-bbel.lm <- 
+bbel.lm <- lm(abund~light+I(light^2),data=bbel)
  
-summary()
+summary(bbel.lm)
 ```
 
 Notice how this has given us three estimates - this is for `a`, `b` and `c` in our equation above.
@@ -446,7 +455,7 @@ If we plug these values into our equation above, we get a fitted line with the e
 
 ```{r}
 bbel_plot +
-  geom_smooth(method = , formula = , se = )
+  geom_smooth(method = "lm", formula =y~x+ I(x^2), se = FALSE)
 ```
 
 Neat-o!
@@ -456,6 +465,8 @@ TRY IT YOURSELF:
 ```{r}
 library()
 View()
+
+##skipping this for now bc of time
 ```
 
 1.  Choose one species and filter for only the data on that species.
@@ -467,11 +478,11 @@ View()
 ## Multiple Linear Regression
 
 ```{r}
-load()
+load(file = "Demo Data Files/S4E2e.RData")
 
-guppy <- read.csv()
-lions <- read.csv()
-earthworms <- read.csv()
+guppy <- read.csv(file = "Demo Data Files/chap17f9_1GuppyColdDeath.csv")
+lions <- read.csv(file = "Demo Data Files/chap17e1LionNoses.csv")
+earthworms <- read.csv(file = "Demo Data Files/chap17q17EarthwormsAndNitrogen.csv")
 
 ```
 
@@ -484,19 +495,21 @@ Basic format:
 These data show the abundance of butterflies and the availability of food plants and nectar resources.
 
 ```{r}
-glimpse()
+glimpse(bff)
 ```
 
 ```{r}
-bff.lm <- lm(, data = )
-
+bff.lm <- lm(count~food+nectar, data = bff)
+summary(bff.lm)
 ```
 
 ### Viewing the Regression Coefficients
 
 ```{r}
-coef() 
+coef(bff.lm)
+coef(bff.lm)[2]
  # Calling only one of the coefficients
+coef(bff.lm)["food"]
 # another way to do the same thing
 ```
 
@@ -509,13 +522,13 @@ Mathematically, the beta coefficient is calculated:
 Beta coefficient for predictor variable FOOD:
 
 ```{r}
-coef()[] * 
+coef(bff.lm)["food"] *sd(bff$food)/sd(bff$count) 
 ```
 
 Beta coefficient for predictor variable NECTAR:
 
 ```{r}
-coef()[] * 
+coef(bff.lm)["nectar"] * sd(bff$nectar)/sd(bff$count)
 ```
 
 So that's all well and good when we only have a few predictor variables, and can drop the ones that aren't significant.
@@ -524,12 +537,14 @@ The goal of regression is to find the best fit model to explain the data - and t
 
 -not significant -collinearity between two predictor variables
 
+#dont use colinear variables, pick one so the math doesnt go all wonky
+
 ## Multiple Regression steps
 
 View the data:
 
 ```{r}
-glimpse()
+glimpse(mf)
 ```
 
 Remember the mayflies? In the last exercise we only tested the effect of Speed, but many things could affect the length of a mayfly! What variables best predict length of mayflies?
@@ -541,7 +556,11 @@ Where to begin? We might start out by seeing which variables we expect to be imp
 This function makes a correlation matrix looking at the relationship of each variable to all the others.
 
 ```{r}
- %>% 
+ cor(mf) |> 
+   round(2)
+ #calculated us a correlation coefficient for every combination of variables
+ #colinearity only matters when its in predictor variables
+ #algae and BOD are pretty strongly correlated 
 ```
 
 #### Step 2: Select your first variable
@@ -551,8 +570,9 @@ Since length is our RESPONSE variable, we look at the first column/row (they're 
 Which factor has the highest absolute value? Let's add that one first and run a simple model.
 
 ```{r}
-mod <- lm()
-
+mod <- lm(Length~BOD, data=mf)
+#BOD is particulate organic matter equivalent
+summary(mod)
 ```
 
 #### Step 3: Decide if additional variables are appropriate using stepwise testing.
@@ -560,14 +580,14 @@ mod <- lm()
 Adding other predictors we need to justify whether they add something to the model - either by expert opinion (it should be important), or because they aren't collinear and explain other parts of the variation. We can test whether one model is better than another using an anova.
 
 ```{r}
-fit1 <- 
-fit1 <- 
-summary()
-fit2 <- lm()
+fit1 <-lm(Length~BOD, data=mf) 
+fit1 <- lm(Length~Algae, data=mf)
+summary(fit1)
+fit2 <- lm(Length~BOD+Algae, data=mf)
+summary(fit2)
+plot(BOD ~ Algae, data =mf )
 
-plot( ~ , data = )
-summary(=)
-
+anova(fit1, fit2)
 ```
 
 #### Step 4: Assess model fit and results
@@ -579,7 +599,15 @@ Why weren't the other variables significant anymore?
 Look back at the correlation matrix.
 
 ```{r}
-cor()
+cor(mf) |> 
+  round(2)
+
+model_more<=
+  lm(Length~BOD*NO3, data=mf)
+summary(model_more)
+
+model_more2<-lm(Length~BOD+Speed, data=mf)
+summary(model_more2)
 ```
 
 ### Step 5: Report results
