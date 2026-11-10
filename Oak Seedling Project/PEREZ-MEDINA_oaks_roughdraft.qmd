@@ -4,11 +4,23 @@ format: html
 editor: visual
 ---
 
-# Assessment of Oak Trees (*scientific names)* populations in microhabitats within (name of reserve)
+# Assessment of Coast Live Oak Trees (*Quercus agrifolia)* populations in microhabitats within Limestone Canyon
 
 ## Project summary:
 
-----proj summary here-----
+Coast Live Oak (*Quercus agrifolia)* is one of the many species that play a key role in Limestone Canyon habitats. The role of these trees are so crucial to the ecosystem that they create their own microhabitats that this study relies on to observe oak growth. The three microhabitats formed by oaks include open space, adult canopy, and dead tree. Oak seedlings were planted at these microhabitats in blocks going up the canyon trail. Natural recruits, along with the planted seedlings were then monitored over time. Groups worked together to take measurements like SPAD, soil moisture, height, and number of leaves and record them on 10/08. Because data was only recorded for up to block 5 by the groups, field technicians recorded the remaining data on 10/15 after a rainstorm. Raw data was put into Excel, tidied in R, and explored using histograms and boxplots to later run the proper statistical analyses to explore whether rainfall impacts soil moisture and leaf greenness in oak trees.
+
+## Question:
+
+- Does oak tree soil moisture and greenness differ after a period of rainfall?
+
+## Hypotheses
+
+- Null Hypothesis: Soil moisture and leaf greenness do not differ significantly after rainfall.
+
+- Alternative Hypothesis: Soil moisture and greenness will differ significantly after rainfall. 
+
+- It is anticipated that both soil moisture and leaf greenness will be higher after rainfall.
 
 ### Loading the packages
 
@@ -35,10 +47,6 @@ SPAD_Data_Raw <-
 ```
 
 ## Cleaning Data Set
-
-\*\*I examined and cleaned the data all in one chunk
-
-You may be either examining `SPAD_Data_Raw`, `Height_Data_Raw`, `LICOR_Data_Raw`, or `Moist_Data_Raw` for your ANOVA question. Examine your data set using the diagnostic functions I've given you above in the How to Examine and Clean Data section.
 
 ```{r}
 view(Moist_Data_Raw)
@@ -308,14 +316,317 @@ spaddatasp
 
 - [Adult canopy seems to have very little data as well, only 4 points]{.underline}
 
-## Question #1: How does soil moisture of oak trees vary by treatment over the three days data was recorded? 
+## Question #1: How does soil moisture of oak trees vary by treatment over the three days data was recorded?
+
+### Look at the Data for tidiness
 
 ```{r}
-#ANOVA and posthoc w my data 
+moistdataanova
+moistdataanova$Treatment
+unique(moistdataanova$Treatment)
+unique(moistdataanova$date)
 ```
 
-## Question#2: Does soil moisture correlate to greenness/SPAD in oak trees? 
+### Variable Assessment
+
+- Treatment: Categorical
+
+- Date: Categorical
+
+- avg soil moisture: numerical/quantitative
+
+Predictors: Treatment, Date
+
+Response: avg soil moistue
+
+Formulas
+
+`height ~ plant + water` (NOT interested in interactions)
+
+`height ~ plant * water` (ARE interested in interactions, which we are.)
+
+### Visualize the data
 
 ```{r}
-#more linear stuff and do the line 
+moistdataanova
+#looking at my dataframe
+moistdatabp<-
+  moistdataanova|> 
+  ggplot() + 
+  aes(x=Treatment,
+      y=avgmoisture, fill=date)+
+  labs(title = "Average Soil Moisture by Treatment and Date",
+       y = "Average Soil Moisture in percentage", x = "Treatment")+
+  geom_boxplot()
+#making a boxplot and calling it moistdatabp
+#using treatment for x and avg moisture for y
+#titling it and labeling axes
+moistdatabp
+#visualizing the figure
 ```
+
+### Assumptions
+
+#### Normality
+
+Oh, what a pain to check normality for each of the 6 combinations of treatments! Let's check it by examining the residuals instead using this fancy function that I picked up from this page: https://www.datanovia.com/en/lessons/anova-in-r/#check-assumptions
+
+If the residuals all plot within the gray area, its all normal.
+
+```{r}
+# Build the linear model
+moist.model  <- lm(avgmoisture ~ Treatment * date, data = moistdataanova)  
+plot(moist.model, which = 2)  
+# Create a QQ plot of residuals 
+ggpubr::ggqqplot(residuals(moist.model))
+```
+
+#### Homogeneity of variance:
+
+```{r}
+plot(moist.model, which=1)   
+#does not look good! I think I still need some assistance in interpreting these 
+moistdataanova |> rstatix::levene_test(avgmoisture~Treatment* date )  
+#p value is high meaning we have homogeneity of variances
+#p value is very low, 0.002, no homogeneity of variances, what do i do if they didnt pass 
+```
+
+### Conduct the statistical test
+
+```{r}
+
+ 
+model.moist.aov <- aov(avgmoisture~Treatment*date, moistdataanova) 
+summary(model.moist.aov) 
+#highly significant effect of treatment and date, not different based on treatment:date though
+```
+
+At first pass, it looks like:
+
+- Treatment by itself did make a difference (p = 0.0311)
+
+- date did make a big difference (p \<\<\< 0.05)
+
+- interaction (`Treatment:date`, p = 0.0756) indicates that the treatments did not react differently to date
+
+  ### Assess the output- looking at df
+
+An easy first pass to examine if you've set up your model correctly is to check the degrees of freedom. Degrees of freedom serve as a proxy for sample size, and are calculated differently for each factor.
+
+#### Treatment degrees of freedom :
+
+- Treatment: 4, 4-1=3
+
+- two dates: 2, 2-1=1
+
+#### Interaction degrees of freedom:
+
+- `(rows - 1) * (columns - 1)`
+
+Here, rows are the species treatment (3) and columns are the water treatment (1) so our df here should be 3\*1=1(good)
+
+#### Residuals (error term) degrees of freedom:
+
+- `total obs - (nrow * ncol)`
+
+```{r}
+moistdataanova |> count() 
+# 27 total rows 
+
+#3
+
+nrow(moistdataanova)-(4*2)
+#19
+
+##getting 19 instead of 20????
+```
+
+Let's see if what we computed matches with the model output:
+
+```{r}
+summary(model.moist.aov)
+        #df for residuals doesnt match!
+#need to do some troubleshooting while im on the Anza Borrego Trip
+```
+
+If your degrees of freedom don't add up, you can try the following troubleshooting steps:
+
+- Check that the data frame you are using for the input to your model is the correct one.
+
+- Is your data frame tidy?
+
+- Have you correctly entered your predictors and responses into the model?
+
+### Post-Hoc Test
+
+Like in one-way ANOVA, this test only tells us if there IS a difference between one or more groups, not which groups are different. We can again use Tukey's Honest Significant Difference test to assess our results and get those details, though its more challenging to parse this time around.
+
+It will give us the pairwise differences within each treatment (ignoring the others), then if we have specified interactions, between each combination of treatments.
+
+```{r}
+model.moist.aov  
+TukeyHSD(model.moist.aov)
+#no significance anywhere! 
+#again, I will go back and revise my code, this seemed to be not working from the start so I may remove my interaction, I will see once I get feedback and think on this for a bit
+
+```
+
+So we already knew there wasn't a difference between plant species, and as there are only two, it only shows us one pairwise p-value.
+
+The water treatment shows us three pairs - `lo-hi, mid-hi, mid-lo`, and all three are significantly different from each other. Easy.
+
+Within the interactions, we want to focus on the pairs that are of interest to us in the experiment, not every single pairwise comparison is very valuable. The ones that are valuable are ones which share levels in one factor (e.g. `vulgaris:mid - vulgaris:lo` is a comparison within vulgaris, or `vulgaris:mid-sativa:mid` is within the mid water treatment). Ones which are different across both factors we can mostly disregard.
+
+### Plot and annotate to show significance
+
+Make the summary
+
+```{r}
+#makign the summary
+```
+
+```{r}
+#making the column plot 
+```
+
+Finally, need to annotate for significance.
+
+```{r} #annotating for significance}
+```
+
+## Question#2: Does soil moisture correlate to greenness/SPAD in oak trees?
+
+### Look at the Data for tidiness
+
+```{r}
+spaddatareg
+```
+
+### Visualizing the Data 
+
+```{r}
+spaddatasp<-
+  spaddatareg|> 
+  ggplot() + 
+  aes(x=avgmoisture,
+      y=avgspad, color=Treatment)+
+  ylim(0,40)+
+  xlim(0,3)+
+  labs(       y = "Average SPAD value", x = "Average Soil Moisture in Percentage")+
+  geom_point()
+spaddatasp
+```
+
+### Checking Assumptions 
+
+1.  **Linear relationship** - visual assessment
+
+    1.  the data does not follow a linear pattern
+
+2.  **Multivariate normality** - check normality of all dependent variables (both IV and DV if using Spearman correlation)
+
+```{r}
+hist(spaddatareg$avgmoisture) 
+#somewhat skewed left
+hist(spaddatareg$avgspad)
+#looks pretty normal 
+```
+
+3.  **Homoscedasticity** - is there roughly equal variance across the range of data?
+
+**Homoscedasticity** - Run the next chunk, then click the first plot, labeled "Residuals vs Fitted". That first plot plots the residuals (the differences between the individual points and the predicted relationship) against the fitted values (the values they would be in a perfect line). The deviation from the dashed line at zero is the residual (the difference between the observed datapoint and the fitted line).
+
+```{r}
+spaddatareg.lm <- lm(avgmoisture~avgspad, data=spaddatareg) 
+plot(spaddatareg.lm)  
+```
+
+Is the variability the same on the left and right sides?
+
+no, it does not look homoscedastic,
+
+#i am quite stuck here, i will ask about this on Tuesday
+
+We decide our mayfly data is homoscedastic (same variance) so we can move on
+
+```{r}
+#assumptions 
+```
+
+```{r}
+
+```
+
+#### Transformations 
+
+## Logarithmic correlation/regression
+
+Does our line look better if we transform our independent variable?
+
+```{r}
+ggplot(spaddatareg)+   
+  aes(x=log(avgmoisture), y=avgspad)+   
+  geom_point() +   
+  geom_smooth(method = "lm")  
+
+ggplot(spaddatareg)+   
+  aes(x=avgmoisture, y=log(avgspad))+   
+  geom_point() +   
+  geom_smooth(method = "lm")
+```
+
+#Stuck becuase the points are vertical- multiple avg spad values for just one moisture value, will ask about this on tues
+
+#### Determine which test to use and which is the predictor/response
+
+- [If NOT NORMAL (skewed) (and transformations fail), then the test to use is the the *Spearman's Rank test* (non-parametric).]{.underline}
+
+#### Hypotheses
+
+For a Spearman's rank correlation:
+
+- H0: There is no correlation between average soil moisture and average SPAD value (rho = 0)
+
+- HA: There is a positive correlation between average soil moisture and average SPAD value . (rho \> 0) or,
+
+- HA: There is a negative correlation between average soil moisture and average SPAD value (rho \< 0)
+
+- 
+
+#### Conduct the test
+
+First let's demonstrate the non-parametric, ranked data, Spearman's rank coefficient test.
+
+```{r}
+spaddatareg$avgmoisture
+cor.test(spaddatareg$avgmoisture, spaddatareg$avgspad, data = spaddatareg, method = "spearman")  
+#save the output to an object 
+spadcorspear <- cor.test( spaddatareg$avgmoisture, spaddatareg$avgspad, data = spaddatareg, method = "spearman") 
+#had to add spaddatareg$ because R kept telling me avgmoisture didnt exist im not sure why, I know it is redundant, but it is what worked to get R to run it
+spadcorspear 
+#pvalue less than 0.5 (0.004) so there is a singificant correlation with a strength of -0.2 (rho value, weak correlation)
+```
+
+Rho (Spearman's rank coefficient) tells us a few things
+
+1.  how close the relationship is (from 0 to 1)
+
+2.  the direction of the relationship (+ or -)
+
+```{r}
+spadcorspear$estimate  
+#rho is -0.286
+rho_spear <- round(spadcorspear$estimate,3) 
+rho_spear
+```
+
+The p-value shows us whether that relationship is significant (depending on the sample size)
+
+```{r}
+spadcorspear$p.value 
+#0.004
+round(spadcorspear$p.value,3) 
+
+```
+
+Oak tree soil moisture is negatively correlated with average SPAD values (rho = -0.286, p =0.004 )
