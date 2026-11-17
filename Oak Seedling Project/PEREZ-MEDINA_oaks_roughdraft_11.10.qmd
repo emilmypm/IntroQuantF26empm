@@ -491,8 +491,7 @@ Make the summary
 
 Finally, need to annotate for significance.
 
-```{r} #annotating for significance}
-```
+`{r} #annotating for significance}`
 
 ## Question#2: Does soil moisture correlate to greenness/SPAD in oak trees?
 
@@ -502,7 +501,7 @@ Finally, need to annotate for significance.
 spaddatareg
 ```
 
-### Visualizing the Data 
+### Visualizing the Data
 
 ```{r}
 spaddatasp<-
@@ -517,7 +516,7 @@ spaddatasp<-
 spaddatasp
 ```
 
-### Checking Assumptions 
+### Checking Assumptions
 
 1.  **Linear relationship** - visual assessment
 
@@ -557,7 +556,7 @@ We decide our mayfly data is homoscedastic (same variance) so we can move on
 
 ```
 
-#### Transformations 
+#### Transformations
 
 ## Logarithmic correlation/regression
 
