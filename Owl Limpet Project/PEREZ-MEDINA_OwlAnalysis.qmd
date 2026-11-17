@@ -800,6 +800,38 @@ If you would like to test whether size differs by predicted human impact, at CDM
 
 ```{r}
 
+
+#  Test of Homogeneity of Variances
+SizeData_2022_2025 
+#visualizing the data
+modelanova <- lm( shell_length_mm~site, data=SizeData_2022_2025)
+# setting the linear model for testing the assumptions and naming it model using shell length, site, and the CDM_TC_Sizes data frame
+
+plot(modelanova, which = 1)
+#visualizing the plot of residuals vs fitted values
+
+
+
+                    
+
+## Test for normality
+ plot(modelanova, which = 2)
+ #visualizing QQ-plot
+                    
+# conducting a Shapiro-Wilk test on the residuals
+shapiro.test(modelanova$residuals)
+ #p is less than 0.05
+ size.lm <- lm(shell_length_mm ~site, data =SizeData_2022_2025)
+  #running an anova between size and area for the dataframe All_Territories_area_mass and naming it terr.lm
+ size.lm
+ #looking at results
+anova(size.lm)
+#looking at anova results as a table, the p is much less than 0.05, indicating a significant difference somwhwere between area and area
+
+                    
+TukeyHSD( aov( shell_length_mm ~ site, data = SizeData_2022_2025 ) )           
+
+
 ```
 
 ## Part 4: Territory Size
@@ -1064,3 +1096,71 @@ Explain your findings!
 #### 5.1 Calculate the slope of best fit regression separately for each site.
 
 #### 5.2 Explore some aspect of the data you find interesting and ask a unique question.
+
+```{r}
+
+#  Test of Homogeneity of Variances
+CDM_TC_Sizes <-SizeData_2022_2025 |> 
+  dplyr::filter(site!="Shaws Cove" & site!="Heisler Park")
+#filtering Shaws Cove and Heisler Park out of the SizeData_2022_2025 data frame and renaming it CDM_TC_sizes
+CDM_TC_Sizes  
+#visualizing the data
+model <- lm( shell_length_mm~site, data=CDM_TC_Sizes  )
+# setting the linear model for testing the assumptions and naming it model using shell length, site, and the CDM_TC_Sizes data frame
+
+plot(model, which = 1)
+#visualizing the plot of residuals vs fitted values
+
+
+var.test(shell_length_mm~site, data=CDM_TC_Sizes)
+# var.test for homogeneity of variance - if p-value < 0.05 then variances are different. 
+#p value is 0.03659 which is less than 0.05
+# NOTE: if your sample fails this test, have no fear! Welch's t-test (the default that R uses) is okay to use with unequal variances. 
+
+
+plot(model, which = 2)
+#visualizing QQ-plot
+
+# conducting a Shapiro-Wilk test on the residuals
+shapiro.test(model$residuals)
+#p is greater than 0.05, but shapiro is overly sensitive with large sample sizes
+
+
+
+
+
+
+
+
+
+#  Test of Homogeneity of Variances
+ter
+#visualizing the data
+modelterranova <- lm( area_mm2~site, data=All_Territories_area_mass)
+# setting the linear model for testing the assumptions and naming it model using shell length, site, and the CDM_TC_Sizes data frame
+
+plot(modelterranova, which = 1)
+#visualizing the plot of residuals vs fitted values
+
+
+
+
+
+## Test for normality
+plot(modelterranova, which = 2)
+#visualizing QQ-plot
+
+# conducting a Shapiro-Wilk test on the residuals
+shapiro.test(modelterranova$residuals)
+#p is less than 0.05
+terr.lm <- lm(area_mm2 ~site, data =All_Territories_area_mass)
+#running an anova between size and area for the dataframe All_Territories_area_mass and naming it terr.lm
+terr.lm
+#looking at results
+anova(terr.lm)
+#looking at anova results as a table, the p is much less than 0.05, indicating a significant difference somwhwere between area and area
+
+
+TukeyHSD( aov( area_mm2 ~ site, data = All_Territories_area_mass ) )           
+
+```
