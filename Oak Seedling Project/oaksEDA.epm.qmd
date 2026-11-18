@@ -319,9 +319,9 @@ summary(spaddatareg$avgspad)
 
   spaddataclean<-
   SPAD_Data_Raw |> 
-  select(Date, Treatment, Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6) |> 
+  select(Date, Treatment, Block, Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6) |> 
   na.omit() |> 
-  arrange(Date, Treatment) |> 
+  arrange(Date, Treatment, Block) |> 
   mutate(date=as.character.Date(Date)) |> 
   select(!(Date))
   #mainfix:arranging data and changing data types so I can work with them
@@ -430,6 +430,7 @@ moistdatacol<-
 #changing positions of the columns 
 moistdatacol
 #viewing the4 column plot
+#issue w error bars again
 ```
 
 [some interpretations]{.underline}
@@ -480,7 +481,7 @@ spaddatasp<-
   aes(x=avgmoisture,
       y=avgspad, color=Treatment)+
   ylim(0,40)+
-  xlim(0,3)+
+  xlim(0,2.5)+
   labs(       y = "Average SPAD value", x = "Average Soil Moisture in Percentage")+
   geom_point()
 #making a plot and calling it spaddatasp

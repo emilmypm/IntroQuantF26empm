@@ -66,7 +66,7 @@ names(Moist_Data_Raw)
 #looking at all names of columns
 moistdataclean<-
   Moist_Data_Raw |> 
-  select(Date, Treatment, VWC1_perc, VWC2_perc, VWC3_perc) |> 
+  select(Date, Block, Treatment, VWC1_perc, VWC2_perc, VWC3_perc) |> 
   na.omit() |> 
   arrange(Date, Treatment) |> 
   mutate(vwc1 = as.numeric(VWC1_perc)) |> 
@@ -97,6 +97,7 @@ moistdataanova<-
     date!="2026-10-21"~date
   ))
 
+moistdataanova
 #making a new dataframe called moistdataanova
 #removing NAs 
 # calculating the average of the moisture percentages, adding it to the table, and removing the three separate observations
@@ -122,13 +123,13 @@ summary(moistdataanova$avgmoisture)
 # View data set
 view(SPAD_Data_Raw)
 #viewing the raw data frame 
-spaddataclean<-
-  SPAD_Data_Raw |> 
-  select(Date, Treatment, Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6) |> 
-  na.omit() |> 
+spaddataclean<-SPAD_Data_Raw |> 
+  filter(Dead_Alive=="Alive") |> 
+  select(Date, Block,Treatment, Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6) |> 
   arrange(Date, Treatment) |> 
   mutate(date=as.character.Date(Date)) |> 
-  select(!(Date))
+  select(!(Date)) 
+
 #making a new dataframe selecting only date, treatment, and the SPAD values by leaf
 #removing the NAs
 #arranging the data by date and treatment
@@ -136,15 +137,24 @@ spaddataclean<-
 #removing the old date column
 spaddataclean
 #visualiZing new dataframe
-spaddatareg<-
-  na.omit(spaddataclean) |> 
-  mutate(avg.spad=((Leaf1+Leaf2+Leaf3+Leaf4+Leaf5+Leaf6)/6)) |> 
+
+spaddatameans<- spaddataclean |>
+  select(starts_with("Leaf")) |> 
+  rowMeans(na.rm=TRUE)
+
+spaddatareg<-spaddataclean |> 
+  bind_cols(spaddatameans) |> 
+  rename(avgspad="...10")
+spaddatareg<- 
+  spaddatareg |> 
   select(!c(Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6)) |> 
-  mutate(avgspad=round(avg.spad,3)) |> 
-  select(!(avg.spad)) |> 
-  filter(avgspad>=10) |> 
-  left_join(moistdataanova) |> 
-  na.omit()
+  mutate(avg.spad=round(avgspad,3)) |> 
+  select(!(avgspad)) |> 
+  filter(avg.spad>6.517) 
+
+
+
+ # left_join(moistdataanova)
 #making a new dataframe called spaddatareg for the regression work
 #removing NAs from the dataframe
 #calculating the average of all SPAD values and adding it to the table as a column called avg.spad
@@ -152,8 +162,15 @@ spaddatareg<-
 #rounding the avg SPAD values and removing the unrounded SPAD averages
 #filtering out any SPAD averages less than zero because the summary function below showed me that I had two SPAD averages under 10; when checking the notes in the raw data, these low values came from brown leaves, so I removed the values 
 #adding the moistdataanova dataframe 
-#removing the NAs once more
-view(spaddatareg) 
+moistdataanova
+spaddatareg
+
+spadmoistdata<-
+  full_join(moistdataanova, spaddatareg, by=c("Treatment", "Block")) |> 
+  dplyr::filter(Treatment!="NR") |> 
+ drop_na()
+spadmoistdata
+view(spadmoistdata) 
 #viewing the new data frame
 summary(spaddatareg$avgspad)
 ##two outliers that i need to remove
@@ -255,17 +272,17 @@ moistdatacol
 ```{r}
 spaddatareg |>    
   ggplot()+   
-  aes(x=avgspad)+   
+  aes(x=avg.spad)+   
   geom_histogram() 
 #histogram for the avg spad values, there doesnt seem to be any more major outliers because i filtered out values under 10
 ```
 
 ```{r}
 spaddatareg
-hist(spaddatareg$avgspad)
-hist(spaddatareg$avgmoisture)
+hist(spaddatareg$avg.spad)
+hist(spadmoistdata$avgmoisture)
 #looks pretty normal
-spadmoist <- lm(avgspad~avgmoisture, data=spaddatareg)
+spadmoist <- lm(avg.spad~avgmoisture, data=spadmoistdata)
 plot(spadmoist)
 #QQ plot shows it is normal 
 summary(spadmoist)
@@ -287,11 +304,11 @@ Rsq
 
 
 spaddatasp<-
-  spaddatareg|> 
+  spadmoistdata|> 
   ggplot() + 
   aes(x=avgmoisture,
-      y=avgspad, color=Treatment)+
-  ylim(0,40)+
+      y=avg.spad, color=Treatment)+
+  ylim(25,40)+
   xlim(0,3)+
   labs(       y = "Average SPAD value", x = "Average Soil Moisture in Percentage")+
   geom_point()
@@ -348,7 +365,8 @@ Formulas
 ### Visualize the data
 
 ```{r}
-moistdataanova
+moistdataanova<-moistdataanova |> 
+  dplyr::filter(Treatment!="NR") 
 #looking at my dataframe
 moistdatabp<-
   moistdataanova|> 
@@ -367,7 +385,7 @@ moistdatabp
 
 ### Assumptions
 
-#### Normality
+#### [Normality]{.underline}
 
 Oh, what a pain to check normality for each of the 6 combinations of treatments! Let's check it by examining the residuals instead using this fancy function that I picked up from this page: https://www.datanovia.com/en/lessons/anova-in-r/#check-assumptions
 
@@ -375,11 +393,21 @@ If the residuals all plot within the gray area, its all normal.
 
 ```{r}
 # Build the linear model
-moist.model  <- lm(avgmoisture ~ Treatment * date, data = moistdataanova)  
+moistdataanovalog <- 
+  mutate(moistdataanova, logmoist = log10(avgmoisture)) |> 
+  dplyr::filter(avgmoisture!=0)
+moistdataanovalog
+
+#try to add new column that is log avg mpoisture and then call column 
+moist.model  <- lm(logmoist ~ Treatment * date, data = moistdataanovalog)
+
+
 plot(moist.model, which = 2)  
 # Create a QQ plot of residuals 
 ggpubr::ggqqplot(residuals(moist.model))
 ```
+
+good thing to try is a transoformatiyon of data and then do it agian (log, etc. )
 
 #### Homogeneity of variance:
 
@@ -387,8 +415,8 @@ ggpubr::ggqqplot(residuals(moist.model))
 plot(moist.model, which=1)   
 #does not look good! I think I still need some assistance in interpreting these 
 moistdataanova |> rstatix::levene_test(avgmoisture~Treatment* date )  
-#p value is high meaning we have homogeneity of variances
-#p value is very low, 0.002, no homogeneity of variances, what do i do if they didnt pass 
+#p value is very low, 0.001, no homogeneity of variances, what do i do if they didnt pass 
+#
 ```
 
 ### Conduct the statistical test
@@ -509,7 +537,7 @@ spaddatasp<-
   ggplot() + 
   aes(x=avgmoisture,
       y=avgspad, color=Treatment)+
-  ylim(0,40)+
+  ylim(25,40)+
   xlim(0,3)+
   labs(       y = "Average SPAD value", x = "Average Soil Moisture in Percentage")+
   geom_point()
