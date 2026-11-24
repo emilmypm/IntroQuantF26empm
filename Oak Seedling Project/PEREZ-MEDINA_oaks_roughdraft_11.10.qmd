@@ -156,7 +156,7 @@ spaddatareg<-
 
 
 
- # left_join(moistdataanova)
+ #left_join(moistdataanova)
 #making a new dataframe called spaddatareg for the regression work
 #removing NAs from the dataframe
 #calculating the average of all SPAD values and adding it to the table as a column called avg.spad
@@ -481,7 +481,19 @@ Let's see if what we computed matches with the model output:
 
 ```{r}
 summary(model.moist.aov)
-        
+anova(model.moist.aov)
+table2spreadsheet(
+  x = NULL,
+  file = "model.moist.aov",
+  type="CSV",
+  append = FALSE,
+  sheetName = "new sheet",
+  digits = 3,
+  digitspvals = 3,
+  trim.pval = 1e-16,
+  add.rownames = FALSE,
+  ...
+)
 ```
 
 If your degrees of freedom don't add up, you can try the following troubleshooting steps:
@@ -548,7 +560,7 @@ moistdatacol<-
 moistdatacol
 #,
 #position=position_dodge(0.9), width=0.2)
-
+ 
 
 ####HELPHERE#####
 ggplot(moistdataanova) + 
@@ -572,29 +584,30 @@ Finally, need to annotate for significance.
 
 `{r} #annotating for significance}`
 
-# NEED ASSISTANCE WITH ERROR BARS AND SIGNIFICANCE - i think i do not need the letters to differ anywhere based on treatment (ABABAB)
+# \^\^\^\^NEED ASSISTANCE WITH ERROR BARS AND annotatingSIGNIFICANCE - i think i do not need the letters to differ anywhere based on treatment (ABABAB)
 
 ## Question#2: Does soil moisture correlate to greenness/SPAD in oak trees?
 
 ### Look at the Data for tidiness
 
 ```{r}
-spaddatareg
+spadmoistdata
 ```
 
 ### Visualizing the Data
 
 ```{r}
 spaddatasp<-
-  spaddatareg|> 
+  spadmoistdata|> 
   ggplot() + 
   aes(x=avgmoisture,
-      y=avgspad, color=Treatment)+
+      y=avg.spad, color=Treatment)+
   ylim(25,40)+
   xlim(0,3)+
-  labs(       y = "Average SPAD value", x = "Average Soil Moisture in Percentage")+
+  labs(       y = "Average SPAD value", x = "Average Volumetric Water Content in Percentage")+
   geom_point()
 spaddatasp
+ggsave("spaddatasp.png", units="in", width=5.5, height=3.75, dpi=300)
 ```
 
 ### Checking Assumptions
@@ -606,9 +619,9 @@ spaddatasp
 2.  **Multivariate normality** - check normality of all dependent variables (both IV and DV if using Spearman correlation)
 
 ```{r}
-hist(spaddatareg$avgmoisture) 
+hist(spadmoistdata$avgmoisture) 
 #somewhat skewed left
-hist(spaddatareg$avgspad)
+hist(spadmoistdata$avg.spad)
 #looks pretty normal 
 ```
 
@@ -617,25 +630,29 @@ hist(spaddatareg$avgspad)
 **Homoscedasticity** - Run the next chunk, then click the first plot, labeled "Residuals vs Fitted". That first plot plots the residuals (the differences between the individual points and the predicted relationship) against the fitted values (the values they would be in a perfect line). The deviation from the dashed line at zero is the residual (the difference between the observed datapoint and the fitted line).
 
 ```{r}
-spaddatareg.lm <- lm(avgmoisture~avgspad, data=spaddatareg) 
+spaddatareg.lm <- lm(avgmoisture~avg.spad, data=spadmoistdata) 
 plot(spaddatareg.lm)  
+
+spadmoistplot<-ggplot(spadmoistdata)+   
+  aes(x=avgmoisture, y=avg.spad)+ 
+  labs(       y = "Average SPAD value", x = "Average Volumetric Water Content in Percentage")+  
+  geom_point() +
+  geom_smooth(method = "lm") 
+spadmoistplot
+
+
+ggplot() + 
+  aes(x=avgmoisture,
+      y=avg.spad, color=Treatment)+
+  ylim(25,40)+
+  xlim(0,3)+
+  labs(       y = "Average SPAD value", x = "Average Volumetric Water Content in Percentage")+
+  geom_point()
+
+ggsave("spadmoistplot.png",units="in", width=5.5, height=3.75, dpi=300)
 ```
 
 Is the variability the same on the left and right sides?
-
-no, it does not look homoscedastic,
-
-#i am quite stuck here, i will ask about this on Tuesday
-
-We decide our mayfly data is homoscedastic (same variance) so we can move on
-
-```{r}
-#assumptions 
-```
-
-```{r}
-
-```
 
 #### Transformations
 
@@ -644,13 +661,13 @@ We decide our mayfly data is homoscedastic (same variance) so we can move on
 Does our line look better if we transform our independent variable?
 
 ```{r}
-ggplot(spaddatareg)+   
-  aes(x=log(avgmoisture), y=avgspad)+   
+ggplot(spadmoistdata)+   
+  aes(x=log(avgmoisture), y=avg.spad)+   
   geom_point() +   
-  geom_smooth(method = "lm")  
-
-ggplot(spaddatareg)+   
-  aes(x=avgmoisture, y=log(avgspad))+   
+  geom_smooth(method = "lm") 
+#NOTTHISONE
+ggplot(spadmoistdata)+   
+  aes(x=avgmoisture, y=log(avg.spad))+   
   geom_point() +   
   geom_smooth(method = "lm")
 ```
@@ -678,10 +695,10 @@ For a Spearman's rank correlation:
 First let's demonstrate the non-parametric, ranked data, Spearman's rank coefficient test.
 
 ```{r}
-spaddatareg$avgmoisture
-cor.test(spaddatareg$avgmoisture, spaddatareg$avgspad, data = spaddatareg, method = "spearman")  
+spadmoistdata$avgmoisture
+cor.test(spadmoistdata$avgmoisture, spadmoistdata$avg.spad, data = spadmoistdata, method = "spearman")  
 #save the output to an object 
-spadcorspear <- cor.test( spaddatareg$avgmoisture, spaddatareg$avgspad, data = spaddatareg, method = "spearman") 
+spadcorspear <- cor.test( spadmoistdata$avgmoisture, spadmoistdata$avg.spad, data = spadmoistdata, method = "spearman") 
 #had to add spaddatareg$ because R kept telling me avgmoisture didnt exist im not sure why, I know it is redundant, but it is what worked to get R to run it
 spadcorspear 
 #pvalue less than 0.5 (0.004) so there is a singificant correlation with a strength of -0.2 (rho value, weak correlation)
@@ -695,7 +712,7 @@ Rho (Spearman's rank coefficient) tells us a few things
 
 ```{r}
 spadcorspear$estimate  
-#rho is -0.286
+#rho is -0.347
 rho_spear <- round(spadcorspear$estimate,3) 
 rho_spear
 ```
@@ -709,4 +726,4 @@ round(spadcorspear$p.value,3)
 
 ```
 
-Oak tree soil moisture is negatively correlated with average SPAD values (rho = -0.286, p =0.004 )
+Oak tree soil moisture is negatively correlated with average SPAD values (rho = -0.347, p =0.004 )
