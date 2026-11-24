@@ -1,0 +1,721 @@
+---
+title: "PEREZ-MEDINA_oaks_roughdraft"
+format: html
+editor: visual
+---
+
+# Assessment of Coast Live Oak Trees (*Quercus agrifolia)* populations in microhabitats within Limestone Canyon
+
+## Project summary:
+
+Coast Live Oak (*Quercus agrifolia)* is one of the many species that play a key role in Limestone Canyon habitats. The role of these trees are so crucial to the ecosystem that they create their own microhabitats that this study relies on to observe oak growth. The three microhabitats formed by oaks include open space, adult canopy, and dead tree. Oak seedlings were planted at these microhabitats in blocks going up the canyon trail. Natural recruits, along with the planted seedlings were then monitored over time. Groups worked together to take measurements like SPAD, soil moisture, height, and number of leaves and record them on 10/08. Because data was only recorded for up to block 5 by the groups, field technicians recorded the remaining data on 10/15 after a rainstorm. Raw data was put into Excel, tidied in R, and explored using histograms and boxplots to later run the proper statistical analyses to explore whether rainfall impacts soil moisture and leaf greenness in oak trees.
+
+## Question:
+
+- Does soil moisture in oak tree habitats and oak tree leaf greenness differ after a period of rainfall?
+
+## Hypotheses
+
+- Null Hypothesis: Soil moisture and leaf greenness do not differ significantly after rainfall.
+
+- Alternative Hypothesis: Soil moisture and greenness will differ significantly after rainfall. 
+
+- It is anticipated that both soil moisture and leaf greenness will be higher after rainfall.
+
+### Loading the packages
+
+```{r}
+library(tidyverse) 
+library(readxl)
+```
+
+### Importing the data
+
+```{r}
+Height_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "Seedling Heights")
+
+Moist_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "Soil Moisture")
+
+SPAD_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "SPAD", 
+             na = "NA")
+```
+
+## Cleaning Data Set
+
+```{r}
+view(Moist_Data_Raw)
+#view it in separate window
+nrow(Moist_Data_Raw)
+#how many rows
+dim(Moist_Data_Raw)
+#number of rows and columns respectively
+glimpse(Moist_Data_Raw)
+#glimpse of the data, too complicated! 
+
+ncol(Moist_Data_Raw)
+#how many columns
+str(Moist_Data_Raw)
+#looking at it all...
+names(Moist_Data_Raw)
+#looking at all names of columns
+moistdataclean<-
+  Moist_Data_Raw |> 
+  select(Date, Block, Treatment, VWC1_perc, VWC2_perc, VWC3_perc) |> 
+  na.omit() |> 
+  arrange(Date, Treatment) |> 
+  mutate(vwc1 = as.numeric(VWC1_perc)) |> 
+  mutate(vwc2= as.numeric(VWC2_perc)) |> 
+  mutate(vwc3= as.numeric(VWC3_perc)) |> 
+  mutate(date=as.character.Date(Date))
+# making a new dataframe called moistdataclean where I only display date, treatment, and the three vwc values
+# getting rid of the nas in the data frame
+#arranging the data by date and treatment 
+#renaming some of my data columns to be more simple, along with changing their formats (percentages to numerical values and dates to categorical )
+?select
+#looking at the select function and what it does 
+moistdatacleaner<-
+  moistdataclean |> 
+  select(!c(VWC1_perc,VWC2_perc,VWC3_perc)) |> 
+  select(!(Date))
+#making a new data frame called moistdatacleaner and removing the original untidy columns
+moistdatacleaner
+#viewing the new dataframe
+moistdataanova<-
+  na.omit(moistdatacleaner) |> 
+  dplyr::filter(Treatment!="NR") |> 
+  drop_na() |> 
+  mutate(avg.moisture=((vwc1+vwc2+vwc3)/3)) |> 
+  select(!c(vwc1,vwc2,vwc3)) |> 
+  mutate(avgmoisture=round(avg.moisture,3)) |> 
+  select(!(avg.moisture)) |> 
+  mutate(date=case_when(
+    date=="2026-10-21" ~ "2026-10-15", 
+    date!="2026-10-21"~date
+  ))
+
+moistdataanova
+#making a new dataframe called moistdataanova
+#removing NAs 
+# calculating the average of the moisture percentages, adding it to the table, and removing the three separate observations
+#rounding the averages, adding it to the table, and removing the unrounded version
+#big big fix- date said 10.21, supposed to be 10.15, i changed it to what it should be
+typeof(moistdataanova$avg.moisture)
+typeof(moistdataanova$date)
+typeof(moistdataanova$avgmoisture)
+view(moistdataanova)
+summary(moistdataanova$avgmoisture)
+#looking into the types of data each column is
+# viewing the dataframe in a new window
+#summarizing the moisture column to see if there are any outstanding outliers
+
+
+
+
+?replace
+
+```
+
+```{r}
+# View data set
+view(SPAD_Data_Raw)
+#viewing the raw data frame 
+spaddataclean<-SPAD_Data_Raw |> 
+  filter(Dead_Alive=="Alive") |> 
+  select(Date, Block,Treatment, Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6) |> 
+  arrange(Date, Treatment) |> 
+  mutate(date=as.character.Date(Date)) |> 
+  select(!(Date)) 
+
+#making a new dataframe selecting only date, treatment, and the SPAD values by leaf
+#removing the NAs
+#arranging the data by date and treatment
+#changing the date column to be categorical
+#removing the old date column
+spaddataclean
+#visualiZing new dataframe
+
+spaddatameans<- spaddataclean |>
+  select(starts_with("Leaf")) |> 
+  rowMeans(na.rm=TRUE)
+
+spaddatareg<-spaddataclean |> 
+  bind_cols(spaddatameans) |> 
+  rename(avgspad="...10")
+spaddatareg<- 
+  spaddatareg |> 
+  select(!c(Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6)) |> 
+  mutate(avg.spad=round(avgspad,3)) |> 
+  select(!(avgspad)) |> 
+  filter(avg.spad>6.517) 
+
+
+
+ #left_join(moistdataanova)
+#making a new dataframe called spaddatareg for the regression work
+#removing NAs from the dataframe
+#calculating the average of all SPAD values and adding it to the table as a column called avg.spad
+#removing the individual leaf SPAD values I used to make the calculations
+#rounding the avg SPAD values and removing the unrounded SPAD averages
+#filtering out any SPAD averages less than zero because the summary function below showed me that I had two SPAD averages under 10; when checking the notes in the raw data, these low values came from brown leaves, so I removed the values 
+#adding the moistdataanova dataframe 
+moistdataanova
+spaddatareg
+
+spadmoistdata<-
+  full_join(moistdataanova, spaddatareg, by=c("Treatment", "Block")) |> 
+  dplyr::filter(Treatment!="NR") |> 
+ drop_na()
+spadmoistdata
+view(spadmoistdata) 
+#viewing the new data frame
+summary(spaddatareg$avgspad)
+##two outliers that i need to remove
+#this is where I checked for outliers, they will no longer show because i removed them, thats a good thing! 
+
+
+
+
+###other way to find the means- not what i did, but the means match yay!
+#spadmean<-spaddataclean |> 
+# rowwise() |> 
+#mutate(leaf_mean=mean(c(Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6), na.rm=TRUE)) |> 
+#ungroup()
+#spadmean
+```
+
+## Exploratory Data analysis (from previous Assignment)
+
+```{r}
+moistdataanova |>   
+  ggplot()+   
+  aes(x=avgmoisture)+   
+  geom_histogram() 
+#histogram to visualize avg soil moisture, there doesnt seem to be any major outliers
+```
+
+```{r}
+moistdataanova
+#looking at my dataframe
+moistdatabp<-
+  moistdataanova|> 
+  ggplot() + 
+  aes(x=Treatment,
+      y=avgmoisture, fill=date)+
+  labs(title = "Average Soil Moisture by Treatment and Date",
+       y = "Average Soil Moisture in percentage", x = "Treatment")+
+  geom_boxplot()
+#making a boxplot and calling it moistdatabp
+#using treatment for x and avg moisture for y
+#titling it and labeling axes
+moistdatabp
+#visualizing the figure
+png("moistdatabp.png", units="in", width=5.5, height=3.75, res=300)
+print(moistdatabp)
+dev.off()
+ggsave("moistdatabp.png", units="in", width=5.5, height=3.75, dpi=300)
+?ggsave
+```
+
+[some interpretations]{.underline}
+
+- [There seems to be little to no data for natural recruits]{.underline}
+
+- [soil moisture seems to have a lot lower averages on the 8th than on the 15th, there was some rain between these two days, so this could be the reason- can look into it deeper with tests of differences later]{.underline}
+
+- [Dead Tree seemed to have some of the highest soil moistures]{.underline}
+
+```{r}
+moistdataanovasum<- 
+  moistdataanova |> 
+  group_by(Treatment,date,avgmoisture
+  ) 
+#was going to do error bars here, but i was having trouble, so i will fix this after more consultation with amy and irissa
+
+# summarize(
+#  mean_moist=mean(avgmoisture), #mean
+# sd_moist=sd(avgmoisture), #sd
+#n =n() , # count
+#se_moist= sd_moist/sqrt(n()))|>  # standard error
+#na.rm means to remove the na in rhe data frames
+#mutate_at(vars(mean_moist, sd_moist, se_moist), # bonus line to reduce digits
+#         .funs = round, 1) 
+
+moistdataanovasum
+#looking at my data
+moistdatacol<-
+  moistdataanovasum|> 
+  ggplot() + 
+  aes(x=Treatment,
+      y=avgmoisture, fill=date)+
+  ylim(0,20)+
+  labs(title = "Average Soil Moisture by Treatment and Date",
+       y = "Average Soil Moisture in percentage", x = "Treatment")+
+  geom_col(position=position_dodge())
+#geom_errorbar(aes(ymin=mean_moist-se_moist,ymax=mean_moist+se_moist))
+#,position=position_dodge(0.9), 
+#width=0.2)
+
+#making a column plot called moistdatacol using tratment for x and average moisture for y
+#labelling axes and title
+#changing positions of the columns 
+moistdatacol
+#viewing the4 column plot
+```
+
+[some interpretations]{.underline}
+
+- [There seems to be little to no data for natural recruits, again]{.underline}
+
+- [soil moisture seems to have a lot lower averages on the 8th than on the 15th, there was some rain between these two days, so this could be the reason- can look into it deeper with tests of differences later]{.underline}
+
+- [Adult canopy seemed to have lower soil moisture on the 15th compared to Dead Tree and Open Space, which is not what I was expecting considering open space has no shade (i thought those numbers would be the lowest)- this could also be looked into deeper with tests of differences later]{.underline}
+
+```{r}
+spaddatareg |>    
+  ggplot()+   
+  aes(x=avg.spad)+   
+  geom_histogram() 
+#histogram for the avg spad values, there doesnt seem to be any more major outliers because i filtered out values under 10
+```
+
+```{r}
+spaddatareg
+hist(spaddatareg$avg.spad)
+hist(spadmoistdata$avgmoisture)
+#looks pretty normal
+spadmoist <- lm(avg.spad~avgmoisture, data=spadmoistdata)
+plot(spadmoist)
+#QQ plot shows it is normal 
+summary(spadmoist)
+#look at coefficients, the speed estimated std. is the slope of the line
+slope <- coef(spadmoist)[2]
+#2 is in brackets to say i only want the second one in the series, doesnt provide intercept value
+slope
+#slope is -0.224
+int <- coef(spadmoist)[1]
+#1 is in brackets- viceversa to say i only want the first value in the series, doesnt provide slope/speed
+int
+#intercept is 34.50514
+summary(spadmoist)$coefficients[2,4]
+#very very small
+Rsq <- summary(spadmoist)$r.squared
+Rsq
+#0.16, not that good of a correlation, not close to 1
+
+
+
+spaddatasp<-
+  spadmoistdata|> 
+  ggplot() + 
+  aes(x=avgmoisture,
+      y=avg.spad, color=Treatment)+
+  ylim(25,40)+
+  xlim(0,3)+
+  labs(       y = "Average SPAD value", x = "Average Volumetric Water Content in Percentage")+
+  geom_point()
+#making a plot and calling it spaddatasp
+#using moisture as x and spad as y
+#using color to indicate treatment
+#setting a domain and range
+#labelling axes
+spaddatasp
+#visualizing plot
+ggsave("spaddatasp.png", units="in", width=5.5, height=3.75, dpi=300)
+```
+
+[some interpretations]{.underline}
+
+- [There seems to be much less data for natural recruits again]{.underline}
+
+- [From a visual standpoint, there is no outstanding trend, this could be because of the very low r squared value, meaning the soil moisture and SPAD value are not strongly correlated]{.underline}
+
+- [Dead Tree data seems to be clustured at very low soil moistures and very high soil moistures, there are not many points in the middle]{.underline}
+
+- [Natural Recruits and open space have the lowest SPAD values compared to the other microhabitats]{.underline}
+
+- [Adult canopy seems to have very little data as well, only 4 points]{.underline}
+
+## Question #1: How does soil moisture in oak tree microhaitats differ before and after rainfall?
+
+### Look at the Data for tidiness
+
+```{r}
+moistdataanova
+moistdataanova$Treatment
+unique(moistdataanova$Treatment)
+unique(moistdataanova$date)
+```
+
+### Variable Assessment
+
+- Treatment: Categorical
+
+- Date: Categorical
+
+- avg soil moisture: numerical/quantitative
+
+Predictors: Treatment, Date
+
+Response: avg soil moistue
+
+Formulas
+
+`height ~ plant + water` (NOT interested in interactions)
+
+`height ~ plant * water` (ARE interested in interactions, which we are.)
+
+### Visualize the data
+
+```{r}
+moistdataanova<-moistdataanova |> 
+  dplyr::filter(Treatment!="NR") 
+#looking at my dataframe
+moistdatabp<-
+  moistdataanova|> 
+  ggplot() + 
+  aes(x=Treatment,
+      y=avgmoisture, fill=date)+
+  labs(title = "Average Soil Moisture by Treatment and Date",
+       y = "Average Volumetric Water Content in Percentage", x = "Treatment")+
+  geom_boxplot()
+#making a boxplot and calling it moistdatabp
+#using treatment for x and avg moisture for y
+#titling it and labeling axes
+moistdatabp
+#visualizing the figure
+ggsave("moistdatabp.png", units="in", width=5.5, height=3.75, dpi=300)
+```
+
+### Assumptions
+
+#### [Normality]{.underline}
+
+Oh, what a pain to check normality for each of the 6 combinations of treatments! Let's check it by examining the residuals instead using this fancy function that I picked up from this page: https://www.datanovia.com/en/lessons/anova-in-r/#check-assumptions
+
+If the residuals all plot within the gray area, its all normal.
+
+```{r}
+# Build the linear model
+moistdataanovalog <- 
+  mutate(moistdataanova, logmoist = log10(avgmoisture)) |> 
+  dplyr::filter(avgmoisture!=0)
+moistdataanovalog
+#looks a lot bettwe with the transformation! 
+
+#try to add new column that is log avg mpoisture and then call column 
+moist.model  <- lm(logmoist ~ Treatment * date, data = moistdataanovalog)
+
+
+plot(moist.model, which = 2)  
+# Create a QQ plot of residuals 
+ggpubr::ggqqplot(residuals(moist.model))
+```
+
+good thing to try is a transoformatiyon of data and then do it agian (log, etc. )
+
+#### Homogeneity of variance:
+
+```{r}
+plot(moist.model, which=1)   
+#does not look good! I think I still need some assistance in interpreting these 
+moistdataanovalog |> rstatix::levene_test(logmoist~Treatment* date ) 
+#p>0.05 with my transformation, this is good! We can continue with the ANOVA
+
+```
+
+### Conduct the statistical test
+
+```{r}
+
+ 
+model.moist.aov <- aov(logmoist~Treatment*date, moistdataanovalog) 
+summary(model.moist.aov) 
+#highly significant effect of date, not different based on treatment:date or treatment, meaning there is no interation and theres no difference based on treatment 
+```
+
+At first pass, it looks like:
+
+- Treatment by itself didnt make a difference (p = 0.566)
+
+- date did make a big difference (p \<\<\< 0.05)
+
+- interaction (`Treatment:date`, p = 0.0756) indicates that the treatments did not react differently to date
+
+  ### Assess the output- looking at df
+
+An easy first pass to examine if you've set up your model correctly is to check the degrees of freedom. Degrees of freedom serve as a proxy for sample size, and are calculated differently for each factor.
+
+#### Treatment degrees of freedom :
+
+- Treatment: 3, 3-1=2
+
+- two dates: 2, 2-1=1
+
+#### Interaction degrees of freedom:
+
+- `(rows - 1) * (columns - 1)`
+
+#### Residuals (error term) degrees of freedom:
+
+- `total obs - (nrow * ncol)`
+
+```{r}
+moistdataanovalog |> count() 
+# 25 total rows 
+
+#3
+
+nrow(moistdataanovalog)-(3*2)
+#19
+
+
+```
+
+Let's see if what we computed matches with the model output:
+
+```{r}
+summary(model.moist.aov)
+anova(model.moist.aov)
+
+
+library(broom)
+library(writexl)
+
+results <- anova(model.moist.aov)
+
+tidy(results)
+
+write_xlsx(tidy(results), path = 'results.xlsx')
+```
+
+If your degrees of freedom don't add up, you can try the following troubleshooting steps:
+
+- Check that the data frame you are using for the input to your model is the correct one.
+
+- Is your data frame tidy?
+
+- Have you correctly entered your predictors and responses into the model?
+
+### Post-Hoc Test
+
+Like in one-way ANOVA, this test only tells us if there IS a difference between one or more groups, not which groups are different. We can again use Tukey's Honest Significant Difference test to assess our results and get those details, though its more challenging to parse this time around.
+
+It will give us the pairwise differences within each treatment (ignoring the others), then if we have specified interactions, between each combination of treatments.
+
+```{r}
+model.moist.aov  
+TukeyHSD(model.moist.aov)
+
+```
+
+So we already knew there wasn't a difference between plant species, and as there are only two, it only shows us one pairwise p-value.
+
+The water treatment shows us three pairs - `lo-hi, mid-hi, mid-lo`, and all three are significantly different from each other. Easy.
+
+Within the interactions, we want to focus on the pairs that are of interest to us in the experiment, not every single pairwise comparison is very valuable. The ones that are valuable are ones which share levels in one factor (e.g. `vulgaris:mid - vulgaris:lo` is a comparison within vulgaris, or `vulgaris:mid-sativa:mid` is within the mid water treatment). Ones which are different across both factors we can mostly disregard.
+
+### Plot and annotate to show significance
+
+Make the summary
+
+```{r}
+#makign the summary
+moistdataanovasummary<-
+moistdataanovalog |> 
+  summarize(
+mean_moist=mean(avgmoisture), #mean
+sd_moist=sd(avgmoisture), #sd
+n =n() , # count
+se_moist= sd_moist/sqrt(n()))|>  # standard error
+mutate_at(vars(mean_moist, sd_moist, se_moist), # bonus line to reduce digits
+         .funs = round, 1) 
+#moistdataanovalog<-moistdataanovalog|>
+ # mutate(mean_moist = mean(avgmoisture), |> 
+          # mutate(sd_moist=sd(avgmoisture))
+  
+```
+
+```{r}
+#making the column plot 
+moistdataanovalogsummary
+#looking at my data
+moistdatacol<-
+  moistdataanova|> 
+  ggplot() + 
+  aes(x=Treatment,
+      y=avgmoisture, fill=date)+
+  ylim(0,20)+
+  labs(title = "Average Soil Moisture by Treatment and Date",
+       y = "Average Volumetric Water Content in percentage", x = "Treatment")+
+  geom_col(position=position_dodge())
+ # geom_errorbar(aes(ymin=mean_moist-se_moist,ymax=mean_moist+se_moist))
+moistdatacol
+#,
+#position=position_dodge(0.9), width=0.2)
+ 
+
+####HELPHERE#####
+ggplot(moistdataanova) + 
+  aes(x=Treatment,
+      y=avgmoisture, fill=date) + 
+  geom_col() + 
+  geom_errorbar(aes(ymin = (mean - se), ymax = (mean + se)), width = 0.1) +
+  geom_text(
+    label = c("A", "B","A", "B","A", "B"), 
+    aes(y = mean+se, x = Site), 
+    vjust = -1, 
+    size = 3) + 
+  ylim(0, 40)
+
+
+
+ggsave("moistdatacol.png", units="in", width=5.5, height=3.75, dpi=300)
+```
+
+Finally, need to annotate for significance.
+
+`{r} #annotating for significance}`
+
+# \^\^\^\^NEED ASSISTANCE WITH ERROR BARS AND annotatingSIGNIFICANCE - i think i do not need the letters to differ anywhere based on treatment (ABABAB)
+
+## Question#2: Does soil moisture correlate to greenness/SPAD in oak trees?
+
+### Look at the Data for tidiness
+
+```{r}
+spadmoistdata
+```
+
+### Visualizing the Data
+
+```{r}
+spaddatasp<-
+  spadmoistdata|> 
+  ggplot() + 
+  aes(x=avgmoisture,
+      y=avg.spad, color=Treatment)+
+  ylim(25,40)+
+  xlim(0,3)+
+  labs(       y = "Average SPAD value", x = "Average Volumetric Water Content in Percentage")+
+  geom_point()
+spaddatasp
+ggsave("spaddatasp.png", units="in", width=5.5, height=3.75, dpi=300)
+```
+
+### Checking Assumptions
+
+1.  **Linear relationship** - visual assessment
+
+    1.  the data does not follow a linear pattern
+
+2.  **Multivariate normality** - check normality of all dependent variables (both IV and DV if using Spearman correlation)
+
+```{r}
+hist(spadmoistdata$avgmoisture) 
+#somewhat skewed left
+hist(spadmoistdata$avg.spad)
+#looks pretty normal 
+```
+
+3.  **Homoscedasticity** - is there roughly equal variance across the range of data?
+
+**Homoscedasticity** - Run the next chunk, then click the first plot, labeled "Residuals vs Fitted". That first plot plots the residuals (the differences between the individual points and the predicted relationship) against the fitted values (the values they would be in a perfect line). The deviation from the dashed line at zero is the residual (the difference between the observed datapoint and the fitted line).
+
+```{r}
+spaddatareg.lm <- lm(avgmoisture~avg.spad, data=spadmoistdata) 
+plot(spaddatareg.lm)  
+
+spadmoistplot<-ggplot(spadmoistdata)+   
+  aes(x=avgmoisture, y=avg.spad)+ 
+  labs(       y = "Average SPAD value", x = "Average Volumetric Water Content in Percentage")+  
+  geom_point() +
+  geom_smooth(method = "lm") 
+spadmoistplot
+
+
+
+
+ggsave("spadmoistplot.png",units="in", width=5.5, height=3.75, dpi=300)
+```
+
+Is the variability the same on the left and right sides?
+
+#### Transformations
+
+## Logarithmic correlation/regression
+
+Does our line look better if we transform our independent variable?
+
+```{r}
+ggplot(spadmoistdata)+   
+  aes(x=log(avgmoisture), y=avg.spad)+   
+  geom_point() +   
+  geom_smooth(method = "lm") 
+#NOTTHISONE
+ggplot(spadmoistdata)+   
+  aes(x=avgmoisture, y=log(avg.spad))+   
+  geom_point() +   
+  geom_smooth(method = "lm")
+```
+
+#Stuck becuase the points are vertical- multiple avg spad values for just one moisture value, will ask about this on tues
+
+#### Determine which test to use and which is the predictor/response
+
+- [If NOT NORMAL (skewed) (and transformations fail), then the test to use is the the *Spearman's Rank test* (non-parametric).]{.underline}
+
+#### Hypotheses
+
+For a Spearman's rank correlation:
+
+- H0: There is no correlation between average soil moisture and average SPAD value (rho = 0)
+
+- HA: There is a positive correlation between average soil moisture and average SPAD value . (rho \> 0) or,
+
+- HA: There is a negative correlation between average soil moisture and average SPAD value (rho \< 0)
+
+- 
+
+#### Conduct the test
+
+First let's demonstrate the non-parametric, ranked data, Spearman's rank coefficient test.
+
+```{r}
+spadmoistdata$avgmoisture
+cor.test(spadmoistdata$avgmoisture, spadmoistdata$avg.spad, data = spadmoistdata, method = "spearman")  
+#save the output to an object 
+spadcorspear <- cor.test( spadmoistdata$avgmoisture, spadmoistdata$avg.spad, data = spadmoistdata, method = "spearman") 
+#had to add spaddatareg$ because R kept telling me avgmoisture didnt exist im not sure why, I know it is redundant, but it is what worked to get R to run it
+spadcorspear 
+#pvalue less than 0.5 (0.004) so there is a singificant correlation with a strength of -0.2 (rho value, weak correlation)
+```
+
+Rho (Spearman's rank coefficient) tells us a few things
+
+1.  how close the relationship is (from 0 to 1)
+
+2.  the direction of the relationship (+ or -)
+
+```{r}
+spadcorspear$estimate  
+#rho is -0.347
+rho_spear <- round(spadcorspear$estimate,3) 
+rho_spear
+```
+
+The p-value shows us whether that relationship is significant (depending on the sample size)
+
+```{r}
+spadcorspear$p.value 
+#0.004
+round(spadcorspear$p.value,3) 
+
+```
+
+Oak tree soil moisture is negatively correlated with average SPAD values (rho = -0.347, p =0.004 )

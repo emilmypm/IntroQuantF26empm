@@ -482,18 +482,16 @@ Let's see if what we computed matches with the model output:
 ```{r}
 summary(model.moist.aov)
 anova(model.moist.aov)
-table2spreadsheet(
-  x = NULL,
-  file = "model.moist.aov",
-  type="CSV",
-  append = FALSE,
-  sheetName = "new sheet",
-  digits = 3,
-  digitspvals = 3,
-  trim.pval = 1e-16,
-  add.rownames = FALSE,
-  ...
-)
+
+
+library(broom)
+library(writexl)
+
+results <- anova(model.moist.aov)
+
+tidy(results)
+
+write_xlsx(tidy(results), path = 'results.xlsx')
 ```
 
 If your degrees of freedom don't add up, you can try the following troubleshooting steps:
@@ -641,13 +639,7 @@ spadmoistplot<-ggplot(spadmoistdata)+
 spadmoistplot
 
 
-ggplot() + 
-  aes(x=avgmoisture,
-      y=avg.spad, color=Treatment)+
-  ylim(25,40)+
-  xlim(0,3)+
-  labs(       y = "Average SPAD value", x = "Average Volumetric Water Content in Percentage")+
-  geom_point()
+
 
 ggsave("spadmoistplot.png",units="in", width=5.5, height=3.75, dpi=300)
 ```
