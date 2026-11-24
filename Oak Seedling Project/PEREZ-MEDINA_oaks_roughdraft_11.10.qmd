@@ -12,7 +12,7 @@ Coast Live Oak (*Quercus agrifolia)* is one of the many species that play a key 
 
 ## Question:
 
-- Does oak tree soil moisture and greenness differ after a period of rainfall?
+- Does soil moisture in oak tree habitats and oak tree leaf greenness differ after a period of rainfall?
 
 ## Hypotheses
 
@@ -88,6 +88,8 @@ moistdatacleaner
 #viewing the new dataframe
 moistdataanova<-
   na.omit(moistdatacleaner) |> 
+  dplyr::filter(Treatment!="NR") |> 
+  drop_na() |> 
   mutate(avg.moisture=((vwc1+vwc2+vwc3)/3)) |> 
   select(!c(vwc1,vwc2,vwc3)) |> 
   mutate(avgmoisture=round(avg.moisture,3)) |> 
@@ -213,6 +215,11 @@ moistdatabp<-
 #titling it and labeling axes
 moistdatabp
 #visualizing the figure
+png("moistdatabp.png", units="in", width=5.5, height=3.75, res=300)
+print(moistdatabp)
+dev.off()
+ggsave("moistdatabp.png", units="in", width=5.5, height=3.75, dpi=300)
+?ggsave
 ```
 
 [some interpretations]{.underline}
@@ -310,7 +317,7 @@ spaddatasp<-
       y=avg.spad, color=Treatment)+
   ylim(25,40)+
   xlim(0,3)+
-  labs(       y = "Average SPAD value", x = "Average Soil Moisture in Percentage")+
+  labs(       y = "Average SPAD value", x = "Average Volumetric Water Content in Percentage")+
   geom_point()
 #making a plot and calling it spaddatasp
 #using moisture as x and spad as y
@@ -319,6 +326,7 @@ spaddatasp<-
 #labelling axes
 spaddatasp
 #visualizing plot
+ggsave("spaddatasp.png", units="in", width=5.5, height=3.75, dpi=300)
 ```
 
 [some interpretations]{.underline}
@@ -333,7 +341,7 @@ spaddatasp
 
 - [Adult canopy seems to have very little data as well, only 4 points]{.underline}
 
-## Question #1: How does soil moisture of oak trees vary by treatment over the three days data was recorded?
+## Question #1: How does soil moisture in oak tree microhaitats differ before and after rainfall?
 
 ### Look at the Data for tidiness
 
@@ -374,13 +382,14 @@ moistdatabp<-
   aes(x=Treatment,
       y=avgmoisture, fill=date)+
   labs(title = "Average Soil Moisture by Treatment and Date",
-       y = "Average Soil Moisture in percentage", x = "Treatment")+
+       y = "Average Volumetric Water Content in Percentage", x = "Treatment")+
   geom_boxplot()
 #making a boxplot and calling it moistdatabp
 #using treatment for x and avg moisture for y
 #titling it and labeling axes
 moistdatabp
 #visualizing the figure
+ggsave("moistdatabp.png", units="in", width=5.5, height=3.75, dpi=300)
 ```
 
 ### Assumptions
@@ -397,6 +406,7 @@ moistdataanovalog <-
   mutate(moistdataanova, logmoist = log10(avgmoisture)) |> 
   dplyr::filter(avgmoisture!=0)
 moistdataanovalog
+#looks a lot bettwe with the transformation! 
 
 #try to add new column that is log avg mpoisture and then call column 
 moist.model  <- lm(logmoist ~ Treatment * date, data = moistdataanovalog)
@@ -414,9 +424,9 @@ good thing to try is a transoformatiyon of data and then do it agian (log, etc. 
 ```{r}
 plot(moist.model, which=1)   
 #does not look good! I think I still need some assistance in interpreting these 
-moistdataanova |> rstatix::levene_test(avgmoisture~Treatment* date )  
-#p value is very low, 0.001, no homogeneity of variances, what do i do if they didnt pass 
-#
+moistdataanovalog |> rstatix::levene_test(logmoist~Treatment* date ) 
+#p>0.05 with my transformation, this is good! We can continue with the ANOVA
+
 ```
 
 ### Conduct the statistical test
@@ -424,14 +434,14 @@ moistdataanova |> rstatix::levene_test(avgmoisture~Treatment* date )
 ```{r}
 
  
-model.moist.aov <- aov(avgmoisture~Treatment*date, moistdataanova) 
+model.moist.aov <- aov(logmoist~Treatment*date, moistdataanovalog) 
 summary(model.moist.aov) 
-#highly significant effect of treatment and date, not different based on treatment:date though
+#highly significant effect of date, not different based on treatment:date or treatment, meaning there is no interation and theres no difference based on treatment 
 ```
 
 At first pass, it looks like:
 
-- Treatment by itself did make a difference (p = 0.0311)
+- Treatment by itself didnt make a difference (p = 0.566)
 
 - date did make a big difference (p \<\<\< 0.05)
 
@@ -443,7 +453,7 @@ An easy first pass to examine if you've set up your model correctly is to check 
 
 #### Treatment degrees of freedom :
 
-- Treatment: 4, 4-1=3
+- Treatment: 3, 3-1=2
 
 - two dates: 2, 2-1=1
 
@@ -451,30 +461,27 @@ An easy first pass to examine if you've set up your model correctly is to check 
 
 - `(rows - 1) * (columns - 1)`
 
-Here, rows are the species treatment (3) and columns are the water treatment (1) so our df here should be 3\*1=1(good)
-
 #### Residuals (error term) degrees of freedom:
 
 - `total obs - (nrow * ncol)`
 
 ```{r}
-moistdataanova |> count() 
-# 27 total rows 
+moistdataanovalog |> count() 
+# 25 total rows 
 
 #3
 
-nrow(moistdataanova)-(4*2)
+nrow(moistdataanovalog)-(3*2)
 #19
 
-##getting 19 instead of 20????
+
 ```
 
 Let's see if what we computed matches with the model output:
 
 ```{r}
 summary(model.moist.aov)
-        #df for residuals doesnt match!
-#need to do some troubleshooting while im on the Anza Borrego Trip
+        
 ```
 
 If your degrees of freedom don't add up, you can try the following troubleshooting steps:
@@ -494,8 +501,6 @@ It will give us the pairwise differences within each treatment (ignoring the oth
 ```{r}
 model.moist.aov  
 TukeyHSD(model.moist.aov)
-#no significance anywhere! 
-#again, I will go back and revise my code, this seemed to be not working from the start so I may remove my interaction, I will see once I get feedback and think on this for a bit
 
 ```
 
@@ -511,15 +516,63 @@ Make the summary
 
 ```{r}
 #makign the summary
+moistdataanovasummary<-
+moistdataanovalog |> 
+  summarize(
+mean_moist=mean(avgmoisture), #mean
+sd_moist=sd(avgmoisture), #sd
+n =n() , # count
+se_moist= sd_moist/sqrt(n()))|>  # standard error
+mutate_at(vars(mean_moist, sd_moist, se_moist), # bonus line to reduce digits
+         .funs = round, 1) 
+#moistdataanovalog<-moistdataanovalog|>
+ # mutate(mean_moist = mean(avgmoisture), |> 
+          # mutate(sd_moist=sd(avgmoisture))
+  
 ```
 
 ```{r}
 #making the column plot 
+moistdataanovalogsummary
+#looking at my data
+moistdatacol<-
+  moistdataanova|> 
+  ggplot() + 
+  aes(x=Treatment,
+      y=avgmoisture, fill=date)+
+  ylim(0,20)+
+  labs(title = "Average Soil Moisture by Treatment and Date",
+       y = "Average Volumetric Water Content in percentage", x = "Treatment")+
+  geom_col(position=position_dodge())
+ # geom_errorbar(aes(ymin=mean_moist-se_moist,ymax=mean_moist+se_moist))
+moistdatacol
+#,
+#position=position_dodge(0.9), width=0.2)
+
+
+####HELPHERE#####
+ggplot(moistdataanova) + 
+  aes(x=Treatment,
+      y=avgmoisture, fill=date) + 
+  geom_col() + 
+  geom_errorbar(aes(ymin = (mean - se), ymax = (mean + se)), width = 0.1) +
+  geom_text(
+    label = c("A", "B","A", "B","A", "B"), 
+    aes(y = mean+se, x = Site), 
+    vjust = -1, 
+    size = 3) + 
+  ylim(0, 40)
+
+
+
+ggsave("moistdatacol.png", units="in", width=5.5, height=3.75, dpi=300)
 ```
 
 Finally, need to annotate for significance.
 
 `{r} #annotating for significance}`
+
+# NEED ASSISTANCE WITH ERROR BARS AND SIGNIFICANCE - i think i do not need the letters to differ anywhere based on treatment (ABABAB)
 
 ## Question#2: Does soil moisture correlate to greenness/SPAD in oak trees?
 
