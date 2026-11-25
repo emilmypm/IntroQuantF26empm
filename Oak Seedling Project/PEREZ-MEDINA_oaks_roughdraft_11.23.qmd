@@ -255,8 +255,10 @@ moistdatacol<-
       y=avgmoisture, fill=date)+
   ylim(0,20)+
   labs(title = "Average Soil Moisture by Treatment and Date",
-       y = "Average Soil Moisture in percentage", x = "Treatment")+
-  geom_col(position=position_dodge())
+       y = "Average Soil Moisture in percentage", x = "Treatment (microhabitat)")+
+  geom_col(position=position_dodge())+
+scale_x_discrete(name = "Treatment",
+                 labels = c("Adult Canopy", "Dead Tree", "Open Space"))
 #geom_errorbar(aes(ymin=mean_moist-se_moist,ymax=mean_moist+se_moist))
 #,position=position_dodge(0.9), 
 #width=0.2)
@@ -553,7 +555,13 @@ moistdatacol<-
   ylim(0,20)+
   labs(title = "Average Soil Moisture by Treatment and Date",
        y = "Average Volumetric Water Content in percentage", x = "Treatment")+
-  geom_col(position=position_dodge())
+  geom_col(position=position_dodge())+
+  labs(title = "Average Soil Moisture by Treatment and Date",
+       y = "Average Soil Moisture in percentage", x = "Treatment (microhabitat)")+
+  geom_col(position=position_dodge())+
+  scale_x_discrete(name = "Treatment",
+                   labels = c("Adult Canopy", "Dead Tree", "Open Space"))+
+  scale_fill_brewer(palette = "Set2")
  # geom_errorbar(aes(ymin=mean_moist-se_moist,ymax=mean_moist+se_moist))
 moistdatacol
 #,
@@ -565,12 +573,12 @@ ggplot(moistdataanova) +
   aes(x=Treatment,
       y=avgmoisture, fill=date) + 
   geom_col() + 
-  geom_errorbar(aes(ymin = (mean - se), ymax = (mean + se)), width = 0.1) +
-  geom_text(
-    label = c("A", "B","A", "B","A", "B"), 
-    aes(y = mean+se, x = Site), 
-    vjust = -1, 
-    size = 3) + 
+  #geom_errorbar(aes(ymin = (mean - se), ymax = (mean + se)), width = 0.1) +
+  #geom_text(
+   # label = c("A", "B","A", "B","A", "B"), 
+    #aes(y = mean+se, x = Site), 
+    #vjust = -1, 
+  #  size = 3) + 
   ylim(0, 40)
 
 
